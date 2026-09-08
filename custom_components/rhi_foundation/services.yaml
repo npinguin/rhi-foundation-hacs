@@ -1,0 +1,3 @@
+refresh_snapshot:
+  name: Refresh Foundation snapshot
+  description: Rebuild the bounded technical catalog, domain publication catalog and selected build inputs without creating runtime bindings.

@@ -1,0 +1,13 @@
+{
+  "domain": "rhi_foundation",
+  "name": "Robotix Home Intelligence - Foundation Module",
+  "codeowners": ["@npinguin"],
+  "config_flow": true,
+  "documentation": "https://robotix.be/",
+  "integration_type": "hub",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/npinguin/rhi-foundation/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "1.7.2"
+}

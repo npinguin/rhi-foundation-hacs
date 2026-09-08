@@ -1,0 +1,149 @@
+{
+  "title": "Robotix Home Intelligence - Foundation Module",
+  "config": {
+    "step": {
+      "mode": {
+        "title": "Choose configuration mode",
+        "description": "Normal mode guides configuration from published RHI domains and concepts. Developer diagnostics mode additionally allows technical observation of installed Home Assistant integrations outside a domain concept.",
+        "data": {
+          "developer_mode": "Enable developer diagnostics mode"
+        }
+      },
+      "domain_intro": {
+        "title": "Configure {domain} ({position})",
+        "description": "{description}\n\n{selection_guidance}\n\nPublished concepts:\n{concepts}\n\nEach concept is configured separately: integrations, devices, then review.",
+        "data": {}
+      },
+      "concept_intro": {
+        "title": "{concept} ({position})",
+        "description": "Domain: {domain}\n\n{description}\n\n{selection_guidance}\n\nAvailable installed integrations: {available_integrations}\nPublished but not installed: {unavailable_integrations}\nCurrently configured: {configured_integrations}",
+        "data": {}
+      },
+      "concept_integrations": {
+        "title": "Choose integrations for {concept}",
+        "description": "Domain: {domain}\nAvailable installed integrations: {available_count}\n\nAll currently available integrations are selected by default. Deselect only sources you do not want Foundation to use. Leaving all integrations unchecked skips this concept. Existing unavailable selections remain visible so Foundation never silently removes configured intent.",
+        "data": {
+          "concept_integrations": "Integrations"
+        }
+      },
+      "concept_devices": {
+        "title": "Choose devices for {concept} ({position})",
+        "description": "Integration: {integration}\nDevices found: {device_count}\n\nAll concrete devices are selected by default. Deselect devices that do not belong to this concept. All matching remains available only as an explicit review-required scope.",
+        "data": {
+          "device_filter_mode": "Device filtering",
+          "selected_devices": "Specific devices"
+        }
+      },
+      "concept_review": {
+        "title": "Review {concept}",
+        "description": "Domain: {domain}\n\n{configuration}\n\nReview required: {review_required}\n\nAll-matching is never silently accepted. If listed above, explicitly confirm it before continuing.",
+        "data": {
+          "confirm_all_matching": "Confirm all-matching selection for this concept"
+        }
+      },
+      "technical_integrations": {
+        "title": "Developer technical observation",
+        "description": "Optional. {available_count} installed integration(s) are not currently used by a configured domain concept. Select only integrations you want Foundation to observe technically for diagnostics.",
+        "data": {
+          "technical_integrations": "Technical observation integrations"
+        }
+      },
+      "technical_devices": {
+        "title": "Choose technical-observation devices ({position})",
+        "description": "Integration: {integration}\nMatching devices found: {device_count}\n\nThis selection is diagnostics-only and creates no domain binding.",
+        "data": {
+          "device_filter_mode": "Device filtering",
+          "selected_devices": "Specific devices"
+        }
+      },
+      "review": {
+        "title": "Review Foundation configuration",
+        "description": "{review_summary}",
+        "data": {}
+      },
+      "no_configurable_domains": {
+        "title": "No configurable RHI domains available",
+        "description": "Normal mode requires at least one valid domain publication containing one or more DomainBuildSpecifications.\n\nCurrent domain publication status:\n{publication_status}\n\nFoundation will not invent domain concepts or silently fall back to technical guessing. Review the affected submodule diagnostics, then reopen Foundation configuration after the publication issue is corrected.",
+        "data": {}
+      }
+    },
+    "error": {
+      "select_at_least_one_device": "Select at least one device, or choose All matching devices.",
+      "invalid_device_filter_mode": "Choose a valid device filtering mode.",
+      "confirm_all_matching": "Explicitly confirm the all-matching selection before continuing."
+    }
+  },
+  "options": {
+    "step": {
+      "mode": {
+        "title": "Choose configuration mode",
+        "description": "Normal mode guides configuration from published RHI domains and concepts. Developer diagnostics mode additionally allows technical observation of installed Home Assistant integrations outside a domain concept.",
+        "data": {
+          "developer_mode": "Enable developer diagnostics mode"
+        }
+      },
+      "domain_intro": {
+        "title": "Configure {domain} ({position})",
+        "description": "{description}\n\n{selection_guidance}\n\nPublished concepts:\n{concepts}\n\nEach concept is configured separately: integrations, devices, then review.",
+        "data": {}
+      },
+      "concept_intro": {
+        "title": "{concept} ({position})",
+        "description": "Domain: {domain}\n\n{description}\n\n{selection_guidance}\n\nAvailable installed integrations: {available_integrations}\nPublished but not installed: {unavailable_integrations}\nCurrently configured: {configured_integrations}",
+        "data": {}
+      },
+      "concept_integrations": {
+        "title": "Choose integrations for {concept}",
+        "description": "Domain: {domain}\nAvailable installed integrations: {available_count}\n\nAll currently available integrations are selected by default. Deselect only sources you do not want Foundation to use. Leaving all integrations unchecked skips this concept. Existing unavailable selections remain visible so Foundation never silently removes configured intent.",
+        "data": {
+          "concept_integrations": "Integrations"
+        }
+      },
+      "concept_devices": {
+        "title": "Choose devices for {concept} ({position})",
+        "description": "Integration: {integration}\nDevices found: {device_count}\n\nAll concrete devices are selected by default. Deselect devices that do not belong to this concept. All matching remains available only as an explicit review-required scope.",
+        "data": {
+          "device_filter_mode": "Device filtering",
+          "selected_devices": "Specific devices"
+        }
+      },
+      "concept_review": {
+        "title": "Review {concept}",
+        "description": "Domain: {domain}\n\n{configuration}\n\nReview required: {review_required}\n\nAll-matching is never silently accepted. If listed above, explicitly confirm it before continuing.",
+        "data": {
+          "confirm_all_matching": "Confirm all-matching selection for this concept"
+        }
+      },
+      "technical_integrations": {
+        "title": "Developer technical observation",
+        "description": "Optional. {available_count} installed integration(s) are not currently used by a configured domain concept. Select only integrations you want Foundation to observe technically for diagnostics.",
+        "data": {
+          "technical_integrations": "Technical observation integrations"
+        }
+      },
+      "technical_devices": {
+        "title": "Choose technical-observation devices ({position})",
+        "description": "Integration: {integration}\nMatching devices found: {device_count}\n\nThis selection is diagnostics-only and creates no domain binding.",
+        "data": {
+          "device_filter_mode": "Device filtering",
+          "selected_devices": "Specific devices"
+        }
+      },
+      "review": {
+        "title": "Review Foundation configuration",
+        "description": "{review_summary}",
+        "data": {}
+      },
+      "no_configurable_domains": {
+        "title": "No configurable RHI domains available",
+        "description": "Normal mode requires at least one valid domain publication containing one or more DomainBuildSpecifications.\n\nCurrent domain publication status:\n{publication_status}\n\nFoundation will not invent domain concepts or silently fall back to technical guessing. Review the affected submodule diagnostics, then reopen Foundation configuration after the publication issue is corrected.",
+        "data": {}
+      }
+    },
+    "error": {
+      "select_at_least_one_device": "Select at least one device, or choose All matching devices.",
+      "invalid_device_filter_mode": "Choose a valid device filtering mode.",
+      "confirm_all_matching": "Explicitly confirm the all-matching selection before continuing."
+    }
+  }
+}
