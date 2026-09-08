@@ -2,7 +2,7 @@
 
 Public HACS distribution mirror for the Home Assistant custom integration `rhi_foundation`.
 
-The engineering source of truth is the private `npinguin/rhi-foundation` repository. This public repository contains only installable runtime/distribution content for authorized Robotix Home Intelligence deployments.
+The engineering source of truth is the private `npinguin/rhi-foundation` repository. This public repository contains only installable runtime/distribution content. The private engineering repository, contracts, models, tests and governance evidence are not published here.
 
 ## Installation with HACS
 
@@ -17,4 +17,6 @@ A branch build is not an approved production release. Approved release status is
 
 ## License
 
-Proprietary Software — All Rights Reserved. Public source visibility does not grant permission to copy, modify, redistribute, sublicense, or use the software outside an authorized Robotix Home Intelligence deployment context.
+The software and distribution content in this public HACS repository are licensed under the **GNU General Public License v3.0 only (GPL-3.0-only)**. See `LICENSE` for the full terms.
+
+The separate private `npinguin/rhi-foundation` engineering repository remains proprietary. Its private contracts, models, tests, documentation and governance material are not relicensed merely because the installable runtime is published here under GPL-3.0-only.
