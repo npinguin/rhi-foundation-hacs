@@ -60,12 +60,7 @@ def published_matches_for_candidate(
     *,
     integration_domain: str,
 ) -> list[dict[str, Any]]:
-    """Return domain-published raw matches satisfied by one technical candidate.
-
-    If a requirement has no integration_matches (legacy/dev input), no raw match
-    is produced. Baseline 1.7.0 domain specifications are validated to publish
-    integration_matches for every normalized input.
-    """
+    """Return domain-published raw matches satisfied by one technical candidate."""
     source = candidate.get("source_identity") or {}
     source_kind = str(source.get("source_kind") or "")
     matched: list[dict[str, Any]] = []
@@ -89,8 +84,17 @@ def candidate_matches_requirement(
     allowed_source_kinds: set[str],
     capabilities: set[str],
     selected_device_ids: set[str] | None,
+    selected_config_entry_ids: set[str] | None = None,
 ) -> tuple[bool, list[dict[str, Any]]]:
-    """Apply generic technical guards plus domain-owned raw matching rules."""
+    """Apply generic technical guards plus domain-owned raw matching rules.
+
+    Device selections normally scope candidates by device id. For a published
+    topology whose candidate_scope is ``config_entry``, Foundation may instead
+    receive the config-entry ids belonging to the selected HA devices. This is
+    required for integrations that represent the selectable product on one HA
+    device while exposing its telemetry on a child/sibling device in the same
+    config entry. No domain semantics are inferred here.
+    """
     source = candidate.get("source_identity") or {}
     if source.get("integration_domain") != integration_domain:
         return False, []
@@ -98,9 +102,22 @@ def candidate_matches_requirement(
         return False, []
     if candidate.get("technical_capability", {}).get("capability_class") not in capabilities:
         return False, []
-    device_id = source.get("device_registry_id")
-    if selected_device_ids is not None and device_id is not None and device_id not in selected_device_ids:
-        return False, []
+
+    if selected_device_ids is not None:
+        device_id = source.get("device_registry_id")
+        config_entry_id = source.get("config_entry_id")
+        direct_match = device_id is not None and device_id in selected_device_ids
+        config_entry_match = (
+            selected_config_entry_ids is not None
+            and config_entry_id is not None
+            and config_entry_id in selected_config_entry_ids
+        )
+        # Non-device candidates (service/config-entry surfaces) remain eligible
+        # when they are within an explicitly selected config-entry scope.
+        if device_id is not None and not direct_match and not config_entry_match:
+            return False, []
+        if device_id is None and selected_config_entry_ids is not None and not config_entry_match:
+            return False, []
 
     rules = requirement.get("integration_matches") or []
     if rules:

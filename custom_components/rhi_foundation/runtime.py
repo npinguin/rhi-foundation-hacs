@@ -5,6 +5,8 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Any
 
+from homeassistant.helpers import device_registry as dr
+
 from .build_input import build_domain_inputs
 from .catalog_builder import build_catalog
 from .const import (
@@ -15,6 +17,7 @@ from .const import (
 from .publications import publication_summary, read_publications
 from .health import derive_success_health
 from .handoff import replace_entry_slice
+from .concept_trace import build_concept_trace
 
 
 def _config(entry: Any) -> dict[str, Any]:
@@ -36,8 +39,21 @@ def _integration_inventory(hass: Any, selected: list[str], specs: list[dict[str,
     } for domain, count in sorted(counts.items())]
 
 
+def _device_config_entry_map(hass: Any) -> dict[str, set[str]]:
+    """Map HA device ids to their technical config-entry ownership.
 
-from .concept_trace import build_concept_trace
+    This is a topology fact owned by Home Assistant, not a domain semantic. It lets
+    Foundation honor a domain-published candidate_scope=config_entry while preserving
+    the exact device ids the user originally selected.
+    """
+    registry = dr.async_get(hass)
+    out: dict[str, set[str]] = {}
+    for device in registry.devices.values():
+        entry_ids = {str(item) for item in (getattr(device, "config_entries", None) or set()) if item}
+        if entry_ids:
+            out[str(device.id)] = entry_ids
+    return out
+
 
 def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, Any]:
     config = _config(entry)
@@ -53,6 +69,7 @@ def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, A
         device_selections=device_selections,
         catalog=catalog,
         configuration_revision=revision,
+        device_config_entries=_device_config_entry_map(hass),
     )
     concept_trace = build_concept_trace(
         specifications=specs,
