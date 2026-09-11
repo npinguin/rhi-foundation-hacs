@@ -61,6 +61,39 @@ def _materialize(provider: Any) -> list[dict[str, Any]]:
     return result
 
 
+def _validate_predicates(
+    predicates: Any,
+    *,
+    input_id: Any,
+    raw_capability_id: str,
+    surface: str,
+) -> list[str]:
+    """Validate structural predicates and supporting hints with the same contract rules."""
+    issues: list[str] = []
+    if not isinstance(predicates, list):
+        return [f"invalid:integration_match_{surface}:{input_id}:{raw_capability_id or 'missing'}"]
+    allowed_fields = {
+        "source_identity.unique_id", "source_identity.service_domain", "source_identity.service_name",
+        "source_identity.action_domain", "source_identity.action_type", "source_identity.action_subtype",
+        "source_identity.provider_key", "source_identity.api_capability_id", "source_identity.capability_key",
+        "technical_capability.device_class", "technical_capability.state_class", "technical_capability.native_unit",
+    }
+    for condition in predicates:
+        if not isinstance(condition, dict):
+            issues.append(f"invalid:integration_match_{surface}_condition:{input_id}:{raw_capability_id or 'missing'}")
+            continue
+        field = str(condition.get("field") or "")
+        operator = str(condition.get("operator") or "")
+        value = str(condition.get("value") or "")
+        if field not in allowed_fields:
+            issues.append(f"invalid:integration_match_field:{input_id}:{field or 'missing'}")
+        if operator not in {"equals", "starts_with", "ends_with", "contains"}:
+            issues.append(f"invalid:integration_match_operator:{input_id}:{operator or 'missing'}")
+        if not value:
+            issues.append(f"invalid:integration_match_value:{input_id}:{raw_capability_id or 'missing'}")
+    return issues
+
+
 def validate_specification(spec: dict[str, Any], publisher_domain: str) -> list[str]:
     issues: list[str] = []
     required=("kind","contract_version","publisher","domain_id","builder_id","builder_version","concept","supported_sources","candidate_requirements","build_policy","safety")
@@ -131,29 +164,22 @@ def validate_specification(spec: dict[str, Any], publisher_domain: str) -> list[
                     issues.append(f"invalid:raw_capability_id:{input_id}")
                 if source_kind not in kinds:
                     issues.append(f"invalid:integration_match_source_kind:{input_id}:{source_kind or 'missing'}")
-                conditions = match.get("all_of") or []
-                if not isinstance(conditions, list) or not conditions:
+
+                # Contract 1.2.0 permits structural `all_of` to be empty when a
+                # match is intentionally broad on technical capability and the
+                # source-specific evidence is carried as supporting `hints`.
+                # F1.7.4 incorrectly rejected that valid shape, making every
+                # Mobility publication invalid after unique-id/service-name
+                # predicates were demoted from authority to hints.
+                conditions = match.get("all_of")
+                hints = match.get("hints", [])
+                if conditions is None:
                     issues.append(f"invalid:integration_match_conditions:{input_id}:{raw_capability_id or 'missing'}")
                     continue
-                for condition in conditions:
-                    if not isinstance(condition, dict):
-                        issues.append(f"invalid:integration_match_condition:{input_id}:{raw_capability_id or 'missing'}")
-                        continue
-                    field = str(condition.get("field") or "")
-                    operator = str(condition.get("operator") or "")
-                    value = str(condition.get("value") or "")
-                    allowed_fields = {
-                        "source_identity.unique_id", "source_identity.service_domain", "source_identity.service_name",
-                        "source_identity.action_domain", "source_identity.action_type", "source_identity.action_subtype",
-                        "source_identity.provider_key", "source_identity.api_capability_id", "source_identity.capability_key",
-                        "technical_capability.device_class", "technical_capability.state_class", "technical_capability.native_unit",
-                    }
-                    if field not in allowed_fields:
-                        issues.append(f"invalid:integration_match_field:{input_id}:{field or 'missing'}")
-                    if operator not in {"equals", "starts_with", "ends_with", "contains"}:
-                        issues.append(f"invalid:integration_match_operator:{input_id}:{operator or 'missing'}")
-                    if not value:
-                        issues.append(f"invalid:integration_match_value:{input_id}:{raw_capability_id or 'missing'}")
+                issues.extend(_validate_predicates(conditions, input_id=input_id, raw_capability_id=raw_capability_id, surface="condition"))
+                issues.extend(_validate_predicates(hints, input_id=input_id, raw_capability_id=raw_capability_id, surface="hint"))
+                if not conditions and not hints:
+                    issues.append(f"invalid:integration_match_conditions:{input_id}:{raw_capability_id or 'missing'}")
     safety=spec.get("safety") or {}
     for key,value in SAFETY.items():
         if safety.get(key) is not value: issues.append(f"unsafe:{key}")
