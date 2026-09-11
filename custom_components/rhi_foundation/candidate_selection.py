@@ -36,7 +36,12 @@ def apply_configured_candidate_selection(
     cardinality: str | None,
     device_selection: dict[str, Any] | None,
 ) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]], list[str]]:
-    """Apply exact configured candidate IDs per technical group, fail closed on drift."""
+    """Apply exact configured candidate IDs per technical group, fail closed on drift.
+
+    Only single-valued cardinalities can be explicitly narrowed. Unknown/stale
+    candidate IDs do not fall back to a name guess; they are reported as issues and
+    the original ambiguous set is retained for review/repair.
+    """
     token = str(cardinality or "")
     if token not in {
         "one", "exactly_one", "one_per_system", "exactly_one_per_group",
