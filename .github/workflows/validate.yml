@@ -23,3 +23,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: home-assistant/actions/hassfest@master
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [hacs, hassfest]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        shell: bash
+        run: |
+          version="$(python -c 'import json; print(json.load(open("custom_components/rhi_foundation/manifest.json"))["version"])')"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Publish validated HACS release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          tag="v$VERSION"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists"
+          else
+            gh release create "$tag" --target "$GITHUB_SHA" --title "RHI Foundation $VERSION" --notes "Validated public HACS distribution for RHI Foundation $VERSION."
+          fi

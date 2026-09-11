@@ -5,6 +5,7 @@ from typing import Any
 
 from .classifier import requirement_capabilities
 from .matching import candidate_matches_requirement
+from .candidate_ranking import rank_structural_matches
 from .const import SAFETY
 
 
@@ -160,6 +161,11 @@ def build_selected_input(
                     match_rules_by_candidate[candidate_id] = matched_rules
             required = bool(requirement.get("required"))
             cardinality = requirement.get("cardinality")
+            matches, match_rules_by_candidate = rank_structural_matches(
+                matches,
+                match_rules_by_candidate,
+                cardinality=cardinality,
+            )
             if required and not matches:
                 required_complete = False
                 issues.append(f"required_input_missing:{requirement.get('input_id')}")
@@ -202,9 +208,6 @@ def build_selected_input(
                 "candidate_matches": candidate_matches,
             })
 
-        # Fingerprint drift stays fail-closed by default. It can be reconciled
-        # automatically only for an explicit forward publication revision where
-        # the preserved selection proves complete and unambiguous under the new spec.
         safe_reconciliation = explicit_forward_upgrade and required_complete and not ambiguous
         if spec_changed and not safe_reconciliation:
             issues.append("specification_changed_since_configuration")
