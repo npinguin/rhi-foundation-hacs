@@ -18,6 +18,7 @@ from .publications import publication_summary, read_publications
 from .health import derive_success_health
 from .handoff import replace_entry_slice
 from .concept_trace import build_concept_trace
+from .supervision import aggregate_system_supervision, read_domain_supervisory_statuses
 
 
 def _config(entry: Any) -> dict[str, Any]:
@@ -102,6 +103,7 @@ def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, A
         "concept_trace": concept_trace,
         "selected_domain_build_inputs": selected_inputs,
         "selected_domain_build_inputs_by_domain": by_domain,
+        "domain_supervisory_statuses": read_domain_supervisory_statuses(hass),
         "safety": dict(SAFETY),
     }
 
@@ -124,8 +126,6 @@ async def async_refresh_snapshot(hass: Any, entry: Any, *, reason: str) -> bool:
         try:
             candidate = build_snapshot(hass, entry, refresh_reason=reason)
             _publish_selected_inputs(hass, entry.entry_id, candidate["selected_domain_build_inputs_by_domain"], reason=reason)
-            snapshot = data.setdefault("snapshot", {})
-            snapshot.clear(); snapshot.update(candidate)
             health = data.setdefault("runtime_health", {})
             derived = derive_success_health(candidate)
             health.update({
@@ -138,6 +138,12 @@ async def async_refresh_snapshot(hass: Any, entry: Any, *, reason: str) -> bool:
                 "successful_refreshes": int(health.get("successful_refreshes", 0)) + 1,
                 "failed_refreshes": int(health.get("failed_refreshes", 0)),
             })
+            candidate["system_supervision"] = aggregate_system_supervision(
+                candidate.get("domain_supervisory_statuses", []),
+                foundation_health=health,
+            )
+            snapshot = data.setdefault("snapshot", {})
+            snapshot.clear(); snapshot.update(candidate)
             return True
         except Exception as exc:
             health = data.setdefault("runtime_health", {})

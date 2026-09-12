@@ -25,6 +25,10 @@ async def async_get_config_entry_diagnostics(
             "config_entry_version": entry.version,
         },
         "health": deepcopy(runtime.get("runtime_health", {})),
+        "supervision": {
+            "system": snapshot.get("system_supervision", {}),
+            "domains": snapshot.get("domain_supervisory_statuses", []),
+        },
         "configuration": {
             "data": deepcopy(dict(entry.data)),
             "options": deepcopy(dict(entry.options)),

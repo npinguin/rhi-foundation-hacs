@@ -16,6 +16,7 @@ from .const import (
     CONF_TECHNICAL_SELECTIONS,
     DOMAIN,
     DOMAIN_BUILD_SPECIFICATIONS_CHANGED_EVENT,
+    DOMAIN_SUPERVISORY_STATUS_CHANGED_EVENT,
     FOUNDATION_DISPATCH_SIGNAL,
     FOUNDATION_REFRESH_SERVICE,
     PLATFORMS,
@@ -26,11 +27,11 @@ from .wizard_state import canonicalize_multi_mapping_shape
 CONFIG_ENTRY_VERSION = 5
 
 
-
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Migrate F1.1.x configuration without silently inventing mappings."""
     if entry.version >= CONFIG_ENTRY_VERSION:
         return True
+
     def _migrate_payload(payload: dict[str, Any]) -> dict[str, Any]:
         payload = dict(payload)
         payload.setdefault(CONF_DEVELOPER_MODE, False)
@@ -39,8 +40,6 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         payload.setdefault(CONF_TECHNICAL_SELECTIONS, [])
         payload.setdefault(CONF_DEVICE_SELECTIONS, {})
         payload.setdefault(CONF_CONFIGURATION_REVISION, 1)
-        # F1.1.1 stored builder_ids as a list. Only collapse an unambiguous
-        # single value; multiple values remain unresolved and review-required.
         mappings = dict(payload.get(CONF_CONCEPT_MAPPINGS, {}) or {})
         for mapping in mappings.values():
             if not isinstance(mapping, dict):
@@ -60,8 +59,6 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             for mapping in mappings.values()
             if isinstance(mapping, dict) and mapping.get("integration_domain")
         }
-        # Preserve previous technical-observation intent and ensure every old
-        # selected integration still has an explicit owner after the shape migration.
         technical = set(payload.get(CONF_TECHNICAL_SELECTIONS, []) or [])
         technical.update(set(payload.get(CONF_SELECTED_INTEGRATIONS, []) or []) - mapped)
         payload[CONF_TECHNICAL_SELECTIONS] = sorted(technical)
@@ -93,9 +90,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     async def _refresh(reason: str) -> None:
         await async_refresh_snapshot(hass, entry, reason=reason)
-        async_dispatcher_send(
-            hass, FOUNDATION_DISPATCH_SIGNAL, entry.entry_id
-        )
+        async_dispatcher_send(hass, FOUNDATION_DISPATCH_SIGNAL, entry.entry_id)
 
     async def _on_publication_changed(event: Event) -> None:
         await _refresh(
@@ -103,14 +98,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             f"{event.data.get('publisher_domain', 'unknown')}"
         )
 
+    async def _on_supervision_changed(event: Event) -> None:
+        await _refresh(
+            f"domain_supervision:{event.data.get('reason', 'changed')}:"
+            f"{event.data.get('domain_id', 'unknown')}"
+        )
+
     async def _handle_refresh_service(call: ServiceCall) -> None:
         await _refresh("explicit_service_refresh")
 
-    unsub = hass.bus.async_listen(
+    unsub_publication = hass.bus.async_listen(
         DOMAIN_BUILD_SPECIFICATIONS_CHANGED_EVENT,
         _on_publication_changed,
     )
-    entry.async_on_unload(unsub)
+    entry.async_on_unload(unsub_publication)
+    unsub_supervision = hass.bus.async_listen(
+        DOMAIN_SUPERVISORY_STATUS_CHANGED_EVENT,
+        _on_supervision_changed,
+    )
+    entry.async_on_unload(unsub_supervision)
 
     if not hass.services.has_service(DOMAIN, FOUNDATION_REFRESH_SERVICE):
         hass.services.async_register(
@@ -137,7 +143,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unloaded:
         remove_published_inputs(hass, entry.entry_id)
         hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
-        # single_config_entry=true means no other Foundation instance can own it.
         if hass.services.has_service(DOMAIN, FOUNDATION_REFRESH_SERVICE):
             hass.services.async_remove(DOMAIN, FOUNDATION_REFRESH_SERVICE)
     return unloaded
