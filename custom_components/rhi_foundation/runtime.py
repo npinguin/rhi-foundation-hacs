@@ -120,6 +120,7 @@ def _publish_selected_inputs(hass: Any, entry_id: str, by_domain: dict[str, list
 
 
 async def async_refresh_snapshot(hass: Any, entry: Any, *, reason: str) -> bool:
+    """Run one structural Foundation refresh including discovery and handoff publication."""
     data = hass.data[DOMAIN][entry.entry_id]
     lock = data.setdefault("refresh_lock", asyncio.Lock())
     async with lock:
@@ -158,6 +159,48 @@ async def async_refresh_snapshot(hass: Any, entry: Any, *, reason: str) -> bool:
                 "last_error": f"{type(exc).__name__}: {exc}",
                 "successful_refreshes": int(health.get("successful_refreshes", 0)),
                 "failed_refreshes": int(health.get("failed_refreshes", 0)) + 1,
+            })
+            return False
+
+
+async def async_refresh_supervision_snapshot(hass: Any, entry: Any, *, reason: str) -> bool:
+    """Refresh only cross-domain supervision without re-entering discovery/handoff.
+
+    Domain supervisory status is observability/control-plane information. It must never
+    cause a capability-catalog rebuild or SelectedDomainBuildInput publication. Keeping
+    this path isolated breaks the Foundation <-> domain feedback cycle where a domain
+    reports status after consuming a Foundation handoff.
+    """
+    data = hass.data[DOMAIN][entry.entry_id]
+    lock = data.setdefault("refresh_lock", asyncio.Lock())
+    async with lock:
+        observed_at = datetime.now(timezone.utc).isoformat()
+        health = data.setdefault("runtime_health", {})
+        try:
+            statuses = read_domain_supervisory_statuses(hass)
+            snapshot = data.setdefault("snapshot", {})
+            snapshot["domain_supervisory_statuses"] = statuses
+            snapshot["system_supervision"] = aggregate_system_supervision(
+                statuses,
+                foundation_health=health,
+            )
+            snapshot["supervision_observed_at"] = observed_at
+            snapshot["supervision_refresh_reason"] = reason
+            health.update({
+                "last_supervision_refresh_at": observed_at,
+                "last_supervision_refresh_reason": reason,
+                "last_supervision_error": None,
+                "successful_supervision_refreshes": int(health.get("successful_supervision_refreshes", 0)) + 1,
+                "failed_supervision_refreshes": int(health.get("failed_supervision_refreshes", 0)),
+            })
+            return True
+        except Exception as exc:
+            health.update({
+                "last_supervision_refresh_at": observed_at,
+                "last_supervision_refresh_reason": reason,
+                "last_supervision_error": f"{type(exc).__name__}: {exc}",
+                "successful_supervision_refreshes": int(health.get("successful_supervision_refreshes", 0)),
+                "failed_supervision_refreshes": int(health.get("failed_supervision_refreshes", 0)) + 1,
             })
             return False
 

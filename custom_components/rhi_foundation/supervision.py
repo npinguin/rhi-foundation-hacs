@@ -1,8 +1,8 @@
 """Cross-domain supervisory aggregation owned by Foundation.
 
 Foundation consumes only the shared RHI_DOMAIN_SUPERVISORY_STATUS_V1 envelope.
-Domain-specific semantics, detailed diagnostics, property resolution and business
-intelligence remain owned by the publishing domain.
+Domain-specific semantics, detailed diagnostics, property resolution, business rules
+and intelligence remain owned by the publishing domain.
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from typing import Any, Iterable
 
 CONTRACT_ID = "RHI_DOMAIN_SUPERVISORY_STATUS_V1"
-CONTRACT_VERSION = "1.0.0"
+CONTRACT_VERSION = "1.1.0"
 ALLOWED_STATUSES = {
     "OK",
     "READY",
@@ -32,6 +32,29 @@ _STATUS_PRIORITY = {
     "READY": 10,
 }
 
+_TOP_LEVEL_FIELDS = {
+    "contract_id",
+    "contract_version",
+    "domain_id",
+    "publisher_domain",
+    "release",
+    "configuration_revision",
+    "build_input_revision",
+    "publication_revision",
+    "configuration_status",
+    "contract_status",
+    "build_status",
+    "runtime_status",
+    "overall_domain_readiness",
+    "issue_count",
+    "blocking_issue_count",
+    "warning_count",
+    "issues_summary",
+    "last_success_at",
+    "last_observed_at",
+    "details_reference",
+}
+
 
 def _status(value: Any) -> str:
     raw = str(value or "UNKNOWN").upper()
@@ -39,10 +62,13 @@ def _status(value: Any) -> str:
 
 
 def validate_domain_supervisory_status(payload: Any) -> dict[str, Any]:
-    """Validate the shared envelope without learning domain semantics."""
+    """Validate the generic envelope without learning or accepting domain semantics."""
     if not isinstance(payload, dict):
         raise ValueError("domain supervisory status must be an object")
     row = deepcopy(payload)
+    unknown_fields = set(row) - _TOP_LEVEL_FIELDS
+    if unknown_fields:
+        raise ValueError(f"unsupported domain supervisory fields: {sorted(unknown_fields)}")
     if row.get("contract_id") != CONTRACT_ID:
         raise ValueError("unsupported domain supervisory contract_id")
     if row.get("contract_version") != CONTRACT_VERSION:
@@ -70,7 +96,6 @@ def validate_domain_supervisory_status(payload: Any) -> dict[str, Any]:
         "contract_status",
         "build_status",
         "runtime_status",
-        "intelligence_status",
         "overall_domain_readiness",
     ):
         value = _status(row.get(key))
@@ -122,7 +147,6 @@ def read_domain_supervisory_statuses(hass: Any) -> list[dict[str, Any]]:
                 "contract_status": "BLOCKED",
                 "build_status": "UNKNOWN",
                 "runtime_status": "UNKNOWN",
-                "intelligence_status": "UNKNOWN",
                 "overall_domain_readiness": "BLOCKED",
                 "issue_count": 1,
                 "blocking_issue_count": 1,
@@ -152,7 +176,7 @@ def aggregate_system_supervision(
     *,
     foundation_health: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Aggregate readiness only; never reconstruct domain business semantics."""
+    """Aggregate generic readiness only; never reconstruct domain business semantics."""
     rows = [deepcopy(row) for row in domain_statuses]
     domain_readiness = [_status(row.get("overall_domain_readiness")) for row in rows]
     foundation_state = str((foundation_health or {}).get("state") or "UNKNOWN").upper()

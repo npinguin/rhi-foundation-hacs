@@ -1,6 +1,7 @@
 """Pure SelectedDomainBuildInput registry replacement and structural event delta."""
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
 
 
@@ -15,22 +16,28 @@ def event_reason(refresh_reason: str) -> str:
 
 
 def _structural_inputs(inputs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Return handoff content without diagnostic-only revision counters.
+    """Return handoff content stripped only of non-structural observability evidence.
 
-    Revision numbers are observability metadata, never synchronization
-    primitives. A provider may re-register with a new publication revision
-    without changing the actual DomainBuildSpecification or selected build
-    input. Such a revision-only update must not wake a domain runtime.
+    Revision numbers are diagnostics, never synchronization primitives. Source
+    availability is runtime evidence and must likewise never make Foundation wake a
+    domain. The actual handoff remains lossless; this normalization is used only to
+    decide whether a structural lifecycle event is warranted.
     """
     result: list[dict[str, Any]] = []
     for raw in inputs:
-        item = dict(raw)
+        item = deepcopy(raw)
         item.pop("configuration_revision", None)
         item.pop("candidate_revision", None)
         item.pop("build_input_revision", None)
         selection = dict(item.get("selection") or {})
         selection.pop("publication_revision", None)
         item["selection"] = selection
+        for evidence in item.get("candidate_evidence", []) or []:
+            if not isinstance(evidence, dict):
+                continue
+            quality = dict(evidence.get("quality") or {})
+            quality.pop("availability", None)
+            evidence["quality"] = quality
         result.append(item)
     return result
 

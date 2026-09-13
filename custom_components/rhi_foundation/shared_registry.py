@@ -23,7 +23,12 @@ def register_domain_build_specification_provider(
     provider: Any,
     publication_revision: int | None = None,
 ) -> None:
-    """Register or replace one bounded domain build-specification provider."""
+    """Register or replace one bounded domain build-specification provider.
+
+    Registration is a structural lifecycle signal, not a keep-alive. Re-registering
+    the exact same provider at the exact same publication revision is therefore a
+    no-op and must not wake Foundation discovery.
+    """
     registry = hass.data.setdefault(DOMAIN_BUILD_SPECIFICATION_REGISTRY, {})
     previous = registry.get(publisher_domain)
     revision = int(
@@ -36,6 +41,13 @@ def register_domain_build_specification_provider(
         )
     )
     revision = max(1, revision)
+    if (
+        isinstance(previous, dict)
+        and previous.get("provider") is provider
+        and previous.get("publisher_domain") == publisher_domain
+        and int(previous.get("publication_revision", 0) or 0) == revision
+    ):
+        return
     registry[publisher_domain] = {
         "publisher_domain": publisher_domain,
         "publication_revision": revision,
@@ -92,9 +104,20 @@ def register_domain_supervisory_status_provider(
     publisher_domain: str,
     provider: Any,
 ) -> None:
-    """Register one domain-owned RHI_DOMAIN_SUPERVISORY_STATUS_V1 provider."""
+    """Register one domain-owned supervisory provider and emit one lifecycle update.
+
+    Supervision is intentionally not a telemetry/event stream. Registration or
+    replacement is the only automatic refresh trigger in Baseline 1.8.1. Runtime
+    source changes stay entirely inside the owning domain.
+    """
     registry = hass.data.setdefault(DOMAIN_SUPERVISORY_STATUS_REGISTRY, {})
     previous = registry.get(domain_id)
+    if (
+        isinstance(previous, dict)
+        and previous.get("provider") is provider
+        and previous.get("publisher_domain") == publisher_domain
+    ):
+        return
     registry[domain_id] = {
         "domain_id": domain_id,
         "publisher_domain": publisher_domain,
@@ -116,18 +139,16 @@ def notify_domain_supervisory_status_changed(
     domain_id: str,
     publisher_domain: str,
     reason: str = "status_changed",
-) -> None:
-    """Signal that a registered provider now returns a different status snapshot."""
-    if domain_id not in (hass.data.get(DOMAIN_SUPERVISORY_STATUS_REGISTRY, {}) or {}):
-        return
-    hass.bus.async_fire(
-        DOMAIN_SUPERVISORY_STATUS_CHANGED_EVENT,
-        {
-            "domain_id": domain_id,
-            "publisher_domain": publisher_domain,
-            "reason": reason,
-        },
-    )
+) -> bool:
+    """Compatibility no-op for former runtime-driven supervision notifications.
+
+    Baseline 1.8.1 deliberately forbids domain telemetry/runtime changes from waking
+    Foundation. Foundation reads the registered provider once at registration/setup.
+    A future periodic refresh, when introduced, is Foundation-owned and bounded.
+    Returning ``False`` makes legacy callers harmless while domains migrate away from
+    this helper.
+    """
+    return False
 
 
 def unregister_domain_supervisory_status_provider(
@@ -136,7 +157,7 @@ def unregister_domain_supervisory_status_provider(
     domain_id: str,
     publisher_domain: str,
 ) -> None:
-    """Remove one domain supervisory provider without transferring ownership."""
+    """Remove one domain supervisory provider and emit one lifecycle update."""
     registry = hass.data.setdefault(DOMAIN_SUPERVISORY_STATUS_REGISTRY, {})
     if registry.pop(domain_id, None) is None:
         return
