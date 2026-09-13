@@ -6,14 +6,17 @@ The engineering source of truth is the private `npinguin/rhi-foundation` reposit
 
 ## Installation with HACS
 
-Add this repository to HACS as a custom **Integration** repository, then download the desired version and restart Home Assistant.
+Add `https://github.com/npinguin/rhi-foundation-hacs` to HACS as a custom **Integration** repository, then download the desired version and restart Home Assistant.
 
-- Default branch: current validated development candidate.
-- GitHub releases: approved versions only.
+- Default branch: current validated deployment candidate.
+- GitHub releases: immutable validated package versions for test installation and rollback.
+- Production approval is a separate private release-governance decision and is not implied by the presence of a public HACS version.
+
+For the current pilot cycle, install **1.8.1** before installing Energy E0.12.1 or Mobility M0.7.3.
 
 ## Status
 
-A branch build is not an approved production release. Approved release status is determined by the private RHI release governance, including static validation, clean install, upgrade, rollback, runtime proof and bundle compatibility.
+A published HACS version is an installable package candidate. It is not automatically an approved production release. Production approval remains subject to private RHI release governance, including clean install, upgrade, rollback, target Home Assistant runtime proof and bundle compatibility.
 
 ## License
 
