@@ -2,6 +2,13 @@
   "title": "Robotix Home Intelligence - Foundation Module",
   "config": {
     "step": {
+      "user": {
+        "title": "Choose RHI domain",
+        "description": "{ownership}\n\nAvailable domains: {domain_count}",
+        "data": {
+          "domain_id": "Domain to configure"
+        }
+      },
       "mode": {
         "title": "Choose configuration mode",
         "description": "Normal mode guides configuration from published RHI domains and concepts. Developer diagnostics mode additionally allows technical observation of installed Home Assistant integrations outside a domain concept.",
@@ -57,29 +64,50 @@
         }
       },
       "review": {
-        "title": "Review Foundation configuration",
+        "title": "Review domain configuration",
         "description": "{review_summary}",
         "data": {}
       },
       "no_configurable_domains": {
         "title": "No configurable RHI domains available",
-        "description": "Normal mode requires at least one valid domain publication containing one or more DomainBuildSpecifications.\n\nCurrent domain publication status:\n{publication_status}\n\nFoundation will not invent domain concepts or silently fall back to technical guessing. Review the affected submodule diagnostics, then reopen Foundation configuration after the publication issue is corrected.",
+        "description": "Foundation requires at least one valid domain publication containing one or more DomainBuildSpecifications.\n\nCurrent domain publication status:\n{publication_status}\n\nFoundation will not invent domain concepts or silently fall back to technical guessing. Review the affected submodule diagnostics, then reopen Foundation configuration after the publication issue is corrected.",
         "data": {}
       }
     },
     "error": {
       "select_at_least_one_device": "Select at least one device, or choose All matching devices.",
       "invalid_device_filter_mode": "Choose a valid device filtering mode.",
-      "confirm_all_matching": "Explicitly confirm the all-matching selection before continuing."
+      "confirm_all_matching": "Explicitly confirm the all-matching selection before continuing.",
+      "invalid_domain": "Choose a valid published RHI domain."
     }
   },
   "options": {
     "step": {
-      "mode": {
-        "title": "Choose configuration mode",
-        "description": "Normal mode guides configuration from published RHI domains and concepts. Developer diagnostics mode additionally allows technical observation of installed Home Assistant integrations outside a domain concept.",
+      "domain_select": {
+        "title": "Choose Foundation scope",
+        "description": "{ownership}\n\nAvailable RHI domains: {domain_count}",
+        "data": {
+          "domain_id": "Domain or Foundation settings",
+          "domain_action": "Action"
+        }
+      },
+      "foundation_settings": {
+        "title": "Foundation technical settings",
+        "description": "Developer diagnostics is Foundation-owned and separate from domain configuration. Changing it does not change Energy or Mobility mappings.",
         "data": {
           "developer_mode": "Enable developer diagnostics mode"
+        }
+      },
+      "foundation_review": {
+        "title": "Review Foundation technical settings",
+        "description": "{review_summary}",
+        "data": {}
+      },
+      "remove_domain": {
+        "title": "Remove {domain} configuration",
+        "description": "{effect}\n\nThis removes Foundation-owned technical configuration only. It does not remove the domain integration itself.",
+        "data": {
+          "confirm_remove": "Confirm removal of this domain configuration"
         }
       },
       "domain_intro": {
@@ -130,20 +158,23 @@
         }
       },
       "review": {
-        "title": "Review Foundation configuration",
+        "title": "Review selected domain",
         "description": "{review_summary}",
         "data": {}
       },
       "no_configurable_domains": {
         "title": "No configurable RHI domains available",
-        "description": "Normal mode requires at least one valid domain publication containing one or more DomainBuildSpecifications.\n\nCurrent domain publication status:\n{publication_status}\n\nFoundation will not invent domain concepts or silently fall back to technical guessing. Review the affected submodule diagnostics, then reopen Foundation configuration after the publication issue is corrected.",
+        "description": "Foundation has no current or preserved domain configuration to edit. Install a publishing RHI domain and reopen Foundation configuration.",
         "data": {}
       }
     },
     "error": {
       "select_at_least_one_device": "Select at least one device, or choose All matching devices.",
       "invalid_device_filter_mode": "Choose a valid device filtering mode.",
-      "confirm_all_matching": "Explicitly confirm the all-matching selection before continuing."
+      "confirm_all_matching": "Explicitly confirm the all-matching selection before continuing.",
+      "invalid_domain": "Choose a valid RHI domain.",
+      "domain_not_configured": "This domain has no Foundation configuration to remove.",
+      "foundation_settings_cannot_be_removed": "Foundation technical settings can be changed but not removed as a domain."
     }
   }
 }
