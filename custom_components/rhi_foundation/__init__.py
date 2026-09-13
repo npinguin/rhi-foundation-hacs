@@ -122,8 +122,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             return
 
         async def _run_once() -> None:
-            # One event-loop yield groups domain registrations/reloads that happen in
-            # the same startup burst. There is deliberately no unbounded worker loop.
             await asyncio.sleep(0)
             pending = data.setdefault("pending_structural_refresh_reasons", set())
             reasons = set(pending)
@@ -136,8 +134,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 await _refresh(_combined_reason(reasons))
             finally:
                 data["structural_refresh_task"] = None
-                # An event arriving while the bounded refresh was running receives one
-                # follow-up task. Continuous runtime telemetry cannot enter this path.
                 if data.get("pending_structural_refresh_reasons") and not data.get("structural_refresh_shutdown"):
                     _ensure_structural_refresh_task()
 
@@ -215,14 +211,23 @@ async def _async_update_listener(
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload runtime resources without pretending persisted technical intent was deleted."""
     data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     cancel_pending = data.get("cancel_pending_structural_refresh")
     if callable(cancel_pending):
         cancel_pending()
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
-        remove_published_inputs(hass, entry.entry_id)
+        # Keep the authoritative SelectedDomainBuildInput slice across ordinary
+        # reload/restart. The next setup refresh replaces it atomically. Clearing it
+        # here used to emit a false `removed` lifecycle event and forced every domain
+        # to tear down/rebuild during a Foundation config save.
         hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
         if hass.services.has_service(DOMAIN, FOUNDATION_REFRESH_SERVICE):
             hass.services.async_remove(DOMAIN, FOUNDATION_REFRESH_SERVICE)
     return unloaded
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove published technical intent only when the Foundation entry is genuinely deleted."""
+    remove_published_inputs(hass, entry.entry_id)
