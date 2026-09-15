@@ -95,7 +95,14 @@ def build_selected_input(
     configuration_revision: int,
     device_config_entries: dict[str, set[str]] | None = None,
 ) -> dict[str, Any]:
-    """Prepare a self-contained technical handoff; never create semantic binding."""
+    """Prepare a self-contained technical handoff; never create semantic binding.
+
+    Revalidation is intentionally deterministic. A forward DomainBuildSpecification
+    revision may be reconciled automatically when all required inputs remain complete
+    and unambiguous for the user's persisted selection. Ambiguity on an optional input
+    is local to that input and must not stale the complete selection or force unrelated
+    capabilities through configuration review.
+    """
     builder_id = str(mapping.get("builder_id") or (specification or {}).get("builder_id") or "unresolved")
     domain_id = str(mapping.get("domain") or (specification or {}).get("domain_id") or "unknown")
     integration_domain = str(mapping.get("integration_domain") or "")
@@ -132,7 +139,7 @@ def build_selected_input(
     groups: list[dict[str, Any]] = []
     evidence_by_id: dict[str, dict[str, Any]] = {}
     required_complete = True
-    ambiguous = False
+    blocking_ambiguous = False
 
     if specification is None:
         required_complete = False
@@ -175,12 +182,13 @@ def build_selected_input(
                 matches,
                 selected_device_ids=cardinality_selected_ids,
             )
-            if not cardinality_complete:
+            if required and not cardinality_complete:
                 required_complete = False
-            if cardinality_ambiguous:
-                ambiguous = True
-            for cardinality_issue in cardinality_issues:
-                issues.append(f"cardinality_violation:{requirement.get('input_id')}:{cardinality_issue}")
+            if required and cardinality_ambiguous:
+                blocking_ambiguous = True
+            if required:
+                for cardinality_issue in cardinality_issues:
+                    issues.append(f"cardinality_violation:{requirement.get('input_id')}:{cardinality_issue}")
             candidate_ids: list[str] = []
             candidate_matches: list[dict[str, Any]] = []
             for candidate in matches:
@@ -208,13 +216,13 @@ def build_selected_input(
                 "candidate_matches": candidate_matches,
             })
 
-        safe_reconciliation = explicit_forward_upgrade and required_complete and not ambiguous
+        safe_reconciliation = explicit_forward_upgrade and required_complete and not blocking_ambiguous
         if spec_changed and not safe_reconciliation:
             issues.append("specification_changed_since_configuration")
 
     all_matching = filter_mode == "all_matching"
-    review_required = bool(issues or ambiguous or all_matching)
-    topology_state = "incomplete" if not required_complete else ("ambiguous" if ambiguous else "unambiguous")
+    review_required = bool(issues or blocking_ambiguous or all_matching)
+    topology_state = "incomplete" if not required_complete else ("ambiguous" if blocking_ambiguous else "unambiguous")
     return {
         "kind": "selected_domain_build_input",
         "contract_version": "1.2.0",
