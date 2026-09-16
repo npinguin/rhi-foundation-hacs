@@ -47,6 +47,12 @@ def classify_entity(*, entity_domain: str, device_class: Any, state_class: Any, 
         classes.append("select_write_surface")
     elif entity_domain in {"switch", "input_boolean"}:
         classes.append("binary_write_surface")
+    elif entity_domain == "button":
+        # A button proves only that Home Assistant exposes an invokable entity.
+        # Its domain meaning (restart, unlock, refresh, ...) remains producer-owned
+        # and can only be assigned later by a domain build specification using
+        # attributable source identity/evidence.
+        classes.append("button_write_surface")
 
     if not classes:
         classes.append("state_observation")
