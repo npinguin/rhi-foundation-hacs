@@ -7,7 +7,7 @@ from typing import Any
 
 from homeassistant.helpers import device_registry as dr
 
-from .build_input import build_domain_inputs
+from .build_input import build_domain_inputs, rematerialize_concept_mapping_metadata
 from .catalog_builder import build_catalog
 from .const import (
     CONF_CONFIGURATION_REVISION, CONF_CONCEPT_MAPPINGS, CONF_DEVELOPER_MODE, CONF_DEVICE_SELECTIONS,
@@ -62,7 +62,8 @@ def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, A
     selected = list(config.get(CONF_SELECTED_INTEGRATIONS, []))
     records, specs = read_publications(hass)
     catalog = build_catalog(hass, revision=revision, selected_integrations=None)
-    concept_mappings = dict(config.get(CONF_CONCEPT_MAPPINGS, {}) or {})
+    persisted_concept_mappings = dict(config.get(CONF_CONCEPT_MAPPINGS, {}) or {})
+    concept_mappings = rematerialize_concept_mapping_metadata(persisted_concept_mappings, specs)
     device_selections = dict(config.get(CONF_DEVICE_SELECTIONS, {}) or {})
     by_domain, selected_inputs = build_domain_inputs(
         specifications=specs,

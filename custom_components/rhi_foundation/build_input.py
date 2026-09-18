@@ -9,6 +9,40 @@ from .candidate_ranking import rank_structural_matches
 from .const import SAFETY
 
 
+def rematerialize_concept_mapping_metadata(
+    concept_mappings: dict[str, dict[str, Any]],
+    specifications: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """Project persisted user intent onto current compatible publication metadata."""
+    specs_by_builder = {str(spec.get("builder_id") or ""): spec for spec in specifications}
+    materialized: dict[str, dict[str, Any]] = {}
+    for key, original in concept_mappings.items():
+        mapping = dict(original)
+        spec = specs_by_builder.get(str(mapping.get("builder_id") or ""))
+        if spec is None:
+            materialized[key] = mapping
+            continue
+        concept = spec.get("concept") or {}
+        supported_integrations = {
+            str(source.get("integration_domain") or "")
+            for source in (spec.get("supported_sources") or [])
+            if isinstance(source, dict)
+        }
+        compatible = (
+            str(mapping.get("domain") or "") == str(spec.get("domain_id") or "")
+            and str(mapping.get("concept") or "") == str(concept.get("concept_id") or "")
+            and str(mapping.get("integration_domain") or "") in supported_integrations
+        )
+        if compatible:
+            mapping["builder_version"] = spec.get("builder_version")
+            mapping["publication_revision"] = spec.get("publication_revision")
+            mapping["specification_fingerprint"] = spec.get("specification_fingerprint")
+            if concept.get("display_name"):
+                mapping["display_name"] = concept.get("display_name")
+        materialized[key] = mapping
+    return materialized
+
+
 def _cardinality_assessment(cardinality: str | None, count: int) -> tuple[bool, bool, str | None]:
     """Return (complete, ambiguous, issue) for a single cardinality scope."""
     token = cardinality or "zero_or_more"
