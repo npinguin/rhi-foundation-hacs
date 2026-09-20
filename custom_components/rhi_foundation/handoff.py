@@ -38,6 +38,15 @@ def _structural_inputs(inputs: list[dict[str, Any]]) -> list[dict[str, Any]]:
             quality = dict(evidence.get("quality") or {})
             quality.pop("availability", None)
             evidence["quality"] = quality
+        for group in item.get("candidate_groups", []) or []:
+            if not isinstance(group, dict):
+                continue
+            for candidate in group.get("candidates", []) or []:
+                if not isinstance(candidate, dict):
+                    continue
+                quality = dict(candidate.get("quality") or {})
+                quality.pop("availability", None)
+                candidate["quality"] = quality
         result.append(item)
     return result
 
@@ -74,12 +83,20 @@ def replace_entry_slice(
         }
         next_registry[domain] = next_entry
         previous_entry = previous_entries.get(domain)
+        previous_inputs = list(previous_entry.get("inputs", []) or []) if previous_entry else []
+        previous_build_revision = max(
+            [int(item.get("build_input_revision", 0) or 0) for item in previous_inputs],
+            default=0,
+        )
+        generation_changed = previous_entry is None or build_input_revision != previous_build_revision
         structural_changed = (
             previous_entry is None
-            or _structural_inputs(list(previous_entry.get("inputs", []) or []))
-            != _structural_inputs(inputs)
+            or _structural_inputs(previous_inputs) != _structural_inputs(inputs)
         )
-        if structural_changed:
+        # A fresh Foundation build-input generation is itself a lifecycle boundary.
+        # Consumers reconsume it even when the materialized technical payload is
+        # otherwise equivalent; Foundation does not prove semantic equivalence.
+        if generation_changed or structural_changed:
             events.append({
                 "foundation_entry_id": entry_id,
                 "domain_id": domain,

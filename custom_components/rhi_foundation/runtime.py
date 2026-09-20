@@ -127,6 +127,25 @@ async def async_refresh_snapshot(hass: Any, entry: Any, *, reason: str) -> bool:
     async with lock:
         try:
             candidate = build_snapshot(hass, entry, refresh_reason=reason)
+            registry = hass.data.get(SELECTED_DOMAIN_BUILD_INPUT_REGISTRY, {}) or {}
+            persisted_generation = max(
+                [
+                    int(item.get("build_input_revision", 0) or 0)
+                    for value in registry.values()
+                    if isinstance(value, dict)
+                    for item in (value.get("inputs", []) or [])
+                    if isinstance(item, dict)
+                ],
+                default=0,
+            )
+            generation = max(int(data.get("handoff_generation", 0) or 0), persisted_generation) + 1
+            data["handoff_generation"] = generation
+            for inputs in candidate["selected_domain_build_inputs_by_domain"].values():
+                for selected_input in inputs:
+                    selected_input["build_input_revision"] = generation
+            for selected_input in candidate["selected_domain_build_inputs"]:
+                selected_input["build_input_revision"] = generation
+            candidate["handoff_generation"] = generation
             _publish_selected_inputs(hass, entry.entry_id, candidate["selected_domain_build_inputs_by_domain"], reason=reason)
             health = data.setdefault("runtime_health", {})
             derived = derive_success_health(candidate)
