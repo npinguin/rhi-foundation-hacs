@@ -3,8 +3,8 @@ from __future__ import annotations
 
 DOMAIN = "rhi_foundation"
 MODULE_DISPLAY_NAME = "Robotix Home Intelligence - Foundation Module"
-RELEASE = "F1.8.10"
-RELEASE_NAME = "BOUNDED_EXPLICIT_LIFECYCLE"
+RELEASE = "F1.8.11"
+RELEASE_NAME = "GOVERNANCE_DRIFT_GATE"
 SHARED_BASELINE_ID = "RHI_SHARED_ARCHITECTURE_BASELINE"
 SHARED_BASELINE_VERSION = "1.8.1"
 EXECUTION_MODEL = "configuration_time_active_runtime_passive"

@@ -18,10 +18,12 @@ def event_reason(refresh_reason: str) -> str:
 def _structural_inputs(inputs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Return handoff content stripped only of non-structural observability evidence.
 
-    Revision numbers are diagnostics, never synchronization primitives. Source
-    availability is runtime evidence and must likewise never make Foundation wake a
-    domain. The actual handoff remains lossless; this normalization is used only to
-    decide whether a structural lifecycle event is warranted.
+    Configuration/candidate/publication revisions are normalized out of structural
+    payload comparison. build_input_revision is also removed from payload equality
+    because it is evaluated separately as the monotonic handoff generation boundary.
+    Source availability is runtime evidence and must never wake a domain. The actual
+    handoff remains lossless; this normalization is only the secondary structural
+    comparison beside explicit generation propagation.
     """
     result: list[dict[str, Any]] = []
     for raw in inputs:
