@@ -179,16 +179,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _handle_refresh_service(call: ServiceCall) -> None:
         await _refresh("explicit_service_refresh")
 
-    async def _on_technical_topology_changed(event: Event) -> None:
-        # Home Assistant registry/config-entry lifecycle is technical topology.
-        # It is intentionally coarse: one coalesced Foundation reconciliation is
-        # cheaper and safer than trying to prove semantic equivalence here.
-        _request_structural_refresh(f"technical_topology:{event.event_type}")
-
-    for event_type in ("entity_registry_updated", "device_registry_updated", "config_entry_changed"):
-        entry.async_on_unload(
-            hass.bus.async_listen(event_type, _on_technical_topology_changed)
-        )
 
     unsub_publication = hass.bus.async_listen(
         DOMAIN_BUILD_SPECIFICATIONS_CHANGED_EVENT,
