@@ -94,6 +94,20 @@ def _validate_predicates(
     return issues
 
 
+def _supported_contract_family(value: Any) -> bool:
+    """Accept compatible DomainBuildSpecification 1.x contracts by shape.
+
+    The concrete contract version remains provenance/diagnostics metadata. Foundation
+    only pins the supported contract family (major version) and then validates the
+    actual fields it consumes. Unknown majors fail closed.
+    """
+    parts = str(value or "").split(".")
+    if len(parts) != 3 or not all(part.isdigit() for part in parts):
+        return False
+    major, _minor, _patch = (int(part) for part in parts)
+    return major == 1
+
+
 def validate_specification(spec: dict[str, Any], publisher_domain: str) -> list[str]:
     issues: list[str] = []
     required=("kind","contract_version","publisher","domain_id","builder_id","builder_version","concept","supported_sources","candidate_requirements","build_policy","safety")
@@ -103,7 +117,7 @@ def validate_specification(spec: dict[str, Any], publisher_domain: str) -> list[
     if issues:
         return issues
     if spec.get("kind") != "domain_build_specification": issues.append("invalid:kind")
-    if spec.get("contract_version") != "1.2.0": issues.append("invalid:contract_version")
+    if not _supported_contract_family(spec.get("contract_version")): issues.append("invalid:contract_version")
     if spec.get("publisher") != publisher_domain: issues.append("invalid:publisher_ownership")
     if not str(spec.get("domain_id") or ""): issues.append("invalid:domain_id")
     elif publisher_domain.startswith("rhi_") and str(spec.get("domain_id")) != publisher_domain[4:]: issues.append("invalid:domain_ownership")
@@ -165,7 +179,7 @@ def validate_specification(spec: dict[str, Any], publisher_domain: str) -> list[
                 if source_kind not in kinds:
                     issues.append(f"invalid:integration_match_source_kind:{input_id}:{source_kind or 'missing'}")
 
-                # Contract 1.2.0 permits structural `all_of` to be empty when a
+                # DomainBuildSpecification 1.x permits structural `all_of` to be empty when a
                 # match is intentionally broad on technical capability and the
                 # source-specific evidence is carried as supporting `hints`.
                 # F1.7.4 incorrectly rejected that valid shape, making every

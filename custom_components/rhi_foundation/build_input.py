@@ -120,6 +120,34 @@ def _assess_cardinality(
     return complete, ambiguous, issues
 
 
+def _stable_mapping_identity_matches(
+    specification: dict[str, Any] | None,
+    mapping: dict[str, Any],
+) -> bool:
+    """Compare persisted intent with producer identity, never numeric versions."""
+    if not specification:
+        return False
+    if str(mapping.get("builder_id") or "") != str(specification.get("builder_id") or ""):
+        return False
+    if str(mapping.get("domain") or "") != str(specification.get("domain_id") or ""):
+        return False
+
+    concept = specification.get("concept") or {}
+    if concept and str(mapping.get("concept") or "") != str(concept.get("concept_id") or ""):
+        return False
+
+    sources = specification.get("supported_sources") or []
+    if sources:
+        supported = {
+            str(item.get("integration_domain") or "")
+            for item in sources
+            if isinstance(item, dict)
+        }
+        if str(mapping.get("integration_domain") or "") not in supported:
+            return False
+    return True
+
+
 def build_selected_input(
     *,
     specification: dict[str, Any] | None,
@@ -131,11 +159,11 @@ def build_selected_input(
 ) -> dict[str, Any]:
     """Prepare a self-contained technical handoff; never create semantic binding.
 
-    Revalidation is intentionally deterministic. A forward DomainBuildSpecification
-    revision may be reconciled automatically when all required inputs remain complete
-    and unambiguous for the user's persisted selection. Ambiguity on an optional input
-    is local to that input and must not stale the complete selection or force unrelated
-    capabilities through configuration review.
+    Revalidation is intentionally deterministic and version-independent. Compatibility
+    is established by current builder/domain/concept/integration identity plus validated
+    technical evidence, never by comparing publication or builder version numbers.
+    Ambiguity on an optional input is local to that input and must not stale the complete
+    selection or force unrelated capabilities through configuration review.
     """
     builder_id = str(mapping.get("builder_id") or (specification or {}).get("builder_id") or "unresolved")
     domain_id = str(mapping.get("domain") or (specification or {}).get("domain_id") or "unknown")
@@ -143,16 +171,7 @@ def build_selected_input(
     previous_fingerprint = mapping.get("specification_fingerprint")
     current_fingerprint = (specification or {}).get("specification_fingerprint")
     spec_changed = bool(previous_fingerprint and current_fingerprint and previous_fingerprint != current_fingerprint)
-    configured_publication_revision = mapping.get("publication_revision")
     current_publication_revision = (specification or {}).get("publication_revision")
-    try:
-        explicit_forward_upgrade = (
-            configured_publication_revision is not None
-            and current_publication_revision is not None
-            and int(current_publication_revision) > int(configured_publication_revision)
-        )
-    except (TypeError, ValueError):
-        explicit_forward_upgrade = False
 
     filter_mode = (device_selection or {}).get("device_filter_mode", "all_matching")
     selected_ids = set((device_selection or {}).get("selected_device_ids", []) or [])
@@ -250,7 +269,15 @@ def build_selected_input(
                 "candidate_matches": candidate_matches,
             })
 
-        safe_reconciliation = explicit_forward_upgrade and required_complete and not blocking_ambiguous
+        # Reconcile a changed specification only when persisted identity still maps to
+        # the same producer surface and the current required technical evidence remains
+        # complete and unambiguous. Numeric package/builder/publication versions never
+        # participate in this decision.
+        safe_reconciliation = (
+            _stable_mapping_identity_matches(specification, mapping)
+            and required_complete
+            and not blocking_ambiguous
+        )
         if spec_changed and not safe_reconciliation:
             issues.append("specification_changed_since_configuration")
 
