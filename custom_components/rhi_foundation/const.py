@@ -3,8 +3,8 @@ from __future__ import annotations
 
 DOMAIN = "rhi_foundation"
 MODULE_DISPLAY_NAME = "Robotix Home Intelligence - Foundation Module"
-RELEASE = "F1.8.13"
-RELEASE_NAME = "VERSION_INDEPENDENT_CONTRACT_CONSUMPTION"
+RELEASE = "F1.8.14"
+RELEASE_NAME = "VISUAL_ASSET_REGISTRY"
 SHARED_BASELINE_ID = "RHI_SHARED_ARCHITECTURE_BASELINE"
 SHARED_BASELINE_VERSION = "1.8.1"
 EXECUTION_MODEL = "configuration_time_active_runtime_passive"
@@ -29,6 +29,9 @@ DOMAIN_SUPERVISORY_STATUS_REGISTRY = "rhi_domain_supervisory_status_registry"
 DOMAIN_SUPERVISORY_STATUS_CHANGED_EVENT = "rhi_domain_supervisory_status_changed"
 FOUNDATION_REFRESH_SERVICE = "refresh_snapshot"
 FOUNDATION_DISPATCH_SIGNAL = "rhi_foundation_snapshot_updated"
+VISUAL_ASSET_REGISTRY = "rhi_visual_asset_registry"
+VISUAL_ASSET_REGISTRY_CHANGED_EVENT = "rhi_visual_asset_registry_changed"
+VISUAL_ASSET_REGISTRY_CONTRACT = "RHI_VISUAL_ASSET_REGISTRY_V1"
 
 SAFETY = {
     "creates_binding": False,

@@ -11,6 +11,8 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .visual_asset_registry import visual_asset_registry_snapshot
+
 from .const import (
     DOMAIN,
     FOUNDATION_DISPATCH_SIGNAL,
@@ -19,6 +21,7 @@ from .const import (
     RELEASE_NAME,
     SHARED_BASELINE_ID,
     SHARED_BASELINE_VERSION,
+    VISUAL_ASSET_REGISTRY_CHANGED_EVENT,
 )
 
 # F1.6.2 keeps exactly four bounded operator-facing diagnostics and preserves the
@@ -73,6 +76,7 @@ async def async_setup_entry(
             FoundationHealthSensor(entry.entry_id),
             FoundationSubmodulesSensor(entry.entry_id),
             FoundationConfigurationSensor(entry.entry_id),
+            FoundationVisualAssetRegistrySensor(entry.entry_id),
         ]
     )
 
@@ -277,3 +281,36 @@ class FoundationConfigurationSensor(FoundationBaseSensor):
             "valid_publications_without_specifications": empty_valid,
             "full_evidence": "Home Assistant integration diagnostics",
         }
+
+
+class FoundationVisualAssetRegistrySensor(FoundationBaseSensor):
+    """Public cross-UX visual identity registry.
+
+    This entity is not domain runtime truth. It exposes stable visual_ref metadata
+    only; every consuming UX resolves the ref against its own packaged assets.
+    """
+
+    _attr_name = "RHI Foundation Visual Asset Registry"
+    _attr_unique_id = "visual_asset_registry"
+    _attr_entity_category = None
+
+    @property
+    def native_value(self) -> int:
+        return int(visual_asset_registry_snapshot(self.hass).get("entry_count", 0))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return visual_asset_registry_snapshot(self.hass)
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self.hass.bus.async_listen(
+                VISUAL_ASSET_REGISTRY_CHANGED_EVENT,
+                self._handle_visual_registry_changed,
+            )
+        )
+
+    @callback
+    def _handle_visual_registry_changed(self, _event: Any) -> None:
+        self.async_write_ha_state()
