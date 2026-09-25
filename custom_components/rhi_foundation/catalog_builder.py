@@ -4,11 +4,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from .classifier import classify_config_key, classify_entity
 from .contracts.serialization import catalog_to_contract
 from .discovery.candidate_id import build_candidate_id
+from .ha_registry import device_evidence
 from .models.capability import CapabilityEvidence, CapabilityQuality, FoundationCapabilityCandidate, TechnicalCapability
 from .models.catalog import FoundationCapabilityCatalog
 from .models.source_identity import ConfigEntryProviderSourceIdentity, EntitySourceIdentity, ServiceSourceIdentity
@@ -21,7 +22,7 @@ def _availability(hass: Any, entity_id: str) -> str:
     return "available"
 
 
-def _candidate(source: Any, capability_class: str, *, value_type: str, writable: bool, device_class: Any=None, state_class: Any=None, unit: Any=None, provenance: tuple[str,...], availability: str="available") -> FoundationCapabilityCandidate:
+def _candidate(source: Any, capability_class: str, *, value_type: str, writable: bool, device_class: Any=None, state_class: Any=None, unit: Any=None, provenance: tuple[str,...], availability: str="available", device_evidence: dict[str, Any] | None=None) -> FoundationCapabilityCandidate:
     return FoundationCapabilityCandidate(
         candidate_id=build_candidate_id(source, capability_class),
         candidate_revision=1,
@@ -32,7 +33,7 @@ def _candidate(source: Any, capability_class: str, *, value_type: str, writable:
             state_class=None if state_class is None else str(state_class),
             native_unit=None if unit is None else str(unit),
         ),
-        evidence=CapabilityEvidence(provenance=provenance),
+        evidence=CapabilityEvidence(provenance=provenance, **(device_evidence or {})),
         quality=CapabilityQuality(technical_match_confidence="high", availability=availability, ambiguity="none"),
     )
 
@@ -43,6 +44,7 @@ def build_catalog(hass: Any, *, revision: int, selected_integrations: list[str] 
     entries=list(hass.config_entries.async_entries())
     entry_by_id={entry.entry_id:entry for entry in entries}
     registry=er.async_get(hass)
+    devices=dr.async_get(hass)
     candidates: list[FoundationCapabilityCandidate]=[]
 
     for entity in registry.entities.values():
@@ -64,9 +66,11 @@ def build_catalog(hass: Any, *, revision: int, selected_integrations: list[str] 
             entity_registry_id=str(entity.id), unique_id=str(getattr(entity,"unique_id",None) or entity.id),
             current_entity_id=str(entity.entity_id), device_registry_id=getattr(entity,"device_id",None), target_scope="entity",
         )
+        source_device = devices.async_get(str(entity.device_id)) if getattr(entity, "device_id", None) else None
+        topology_evidence = device_evidence(source_device)
         availability=_availability(hass, str(entity.entity_id))
         for capability_class in classify_entity(entity_domain=entity_domain, device_class=dc, state_class=sc, unit=unit):
-            candidate=_candidate(source, capability_class, value_type="number" if capability_class.endswith(("measurement","counter","capacity")) else "unknown", writable=capability_class.endswith("write_surface"), device_class=dc, state_class=sc, unit=unit, provenance=("entity_registry","entity_metadata"), availability=availability)
+            candidate=_candidate(source, capability_class, value_type="number" if capability_class.endswith(("measurement","counter","capacity")) else "unknown", writable=capability_class.endswith("write_surface"), device_class=dc, state_class=sc, unit=unit, provenance=("entity_registry","entity_metadata","device_registry_topology") if source_device is not None else ("entity_registry","entity_metadata"), availability=availability, device_evidence=topology_evidence)
             candidates.append(candidate)
 
     # Config-entry technical metadata contributes capability presence only; values are deliberately not exported.

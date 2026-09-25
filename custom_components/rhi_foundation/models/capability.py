@@ -22,6 +22,11 @@ class CapabilityEvidence:
     provenance: tuple[str, ...]
     name_hints: tuple[str, ...] = ()
     name_hints_supporting_only: Literal[True] = True
+    device_registry_id: str | None = None
+    via_device_registry_id: str | None = None
+    device_name: str | None = None
+    device_manufacturer: str | None = None
+    device_model: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -23,3 +23,18 @@ def integration_entry_ids(hass: Any, integration_domain: str) -> set[str]:
         for entry in hass.config_entries.async_entries()
         if entry.domain == integration_domain
     }
+
+
+def device_evidence(device: Any | None) -> dict[str, Any]:
+    """Return bounded domain-neutral HA Device Registry evidence."""
+    if device is None:
+        return {}
+    return {
+        "device_registry_id": str(device.id),
+        "via_device_registry_id": (
+            str(device.via_device_id) if getattr(device, "via_device_id", None) else None
+        ),
+        "device_name": getattr(device, "name_by_user", None) or getattr(device, "name", None),
+        "device_manufacturer": getattr(device, "manufacturer", None),
+        "device_model": getattr(device, "model", None),
+    }
