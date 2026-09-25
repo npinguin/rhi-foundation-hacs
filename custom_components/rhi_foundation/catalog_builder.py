@@ -46,6 +46,11 @@ def build_catalog(hass: Any, *, revision: int, selected_integrations: list[str] 
     candidates: list[FoundationCapabilityCandidate]=[]
 
     for entity in registry.entities.values():
+        # Disabled registry entities are not executable/observable runtime sources.
+        # Publishing them as equal candidates creates false ambiguity when an
+        # integration has migrated/replaced an entity but HA retains the old row.
+        if getattr(entity, "disabled_by", None) is not None:
+            continue
         entry_id=getattr(entity,"config_entry_id",None)
         entry=entry_by_id.get(entry_id)
         if entry is None: continue

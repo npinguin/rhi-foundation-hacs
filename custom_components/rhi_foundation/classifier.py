@@ -26,7 +26,19 @@ def classify_entity(*, entity_domain: str, device_class: Any, state_class: Any, 
     if dc == "power" or u in POWER_UNITS:
         classes.append("power_measurement")
     if dc in {"energy", "energy_storage"} or u in ENERGY_UNITS:
-        classes.append("energy_counter" if dc == "energy" else "energy_capacity")
+        # HA energy entities without a device_class are common for integration-
+        # specific session meters. A total/total_increasing state_class is objective
+        # technical evidence of a counter; it must not be misclassified as storage
+        # capacity merely because only the unit (Wh/kWh/MWh) is present.
+        sc = _text(state_class).lower()
+        if dc == "energy" or sc in {"total", "total_increasing"}:
+            classes.append("energy_counter")
+        elif dc == "energy_storage":
+            classes.append("energy_capacity")
+        else:
+            # Unit-only energy with no counter/storage evidence stays capacity-like
+            # rather than inventing counter semantics.
+            classes.append("energy_capacity")
     if dc in {"battery", "humidity"} or u in PERCENT_UNITS:
         classes.append("percentage_measurement")
     if dc == "current" or u in CURRENT_UNITS:
