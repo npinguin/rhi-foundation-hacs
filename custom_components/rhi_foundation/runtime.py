@@ -16,7 +16,7 @@ from .const import (
 )
 from .publications import publication_summary, read_publications
 from .health import derive_success_health
-from .handoff import replace_entry_slice
+from .handoff import replace_entry_slice, structural_slice_changed
 from .concept_trace import build_concept_trace
 from .supervision import aggregate_system_supervision, read_domain_supervisory_statuses
 
@@ -166,13 +166,23 @@ async def async_refresh_snapshot(hass: Any, entry: Any, *, reason: str) -> bool:
                 ],
                 default=0,
             )
-            generation = max(int(data.get("handoff_generation", 0) or 0), persisted_generation) + 1
+            current_generation = max(
+                int(data.get("handoff_generation", 0) or 0),
+                persisted_generation,
+            )
+            changed = structural_slice_changed(
+                registry,
+                entry_id=entry.entry_id,
+                by_domain=candidate["selected_domain_build_inputs_by_domain"],
+            )
+            generation = current_generation + 1 if changed else max(1, current_generation)
             for inputs in candidate["selected_domain_build_inputs_by_domain"].values():
                 for selected_input in inputs:
                     selected_input["build_input_revision"] = generation
             for selected_input in candidate["selected_domain_build_inputs"]:
                 selected_input["build_input_revision"] = generation
             candidate["handoff_generation"] = generation
+            candidate["handoff_structural_changed"] = changed
 
             # Construct the complete candidate before mutating either Foundation's
             # local snapshot or the shared handoff registry.  This keeps structural

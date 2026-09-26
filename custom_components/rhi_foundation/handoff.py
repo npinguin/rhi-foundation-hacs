@@ -53,6 +53,32 @@ def _structural_inputs(inputs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return result
 
 
+
+def structural_slice_changed(
+    registry: dict[str, Any],
+    *,
+    entry_id: str,
+    by_domain: dict[str, list[dict[str, Any]]],
+) -> bool:
+    """Return True only when the materialized structural handoff content changed."""
+    previous_entries = {
+        str(value.get("domain_id")): value
+        for value in registry.values()
+        if isinstance(value, dict)
+        and value.get("foundation_entry_id") == entry_id
+        and value.get("domain_id")
+    }
+    if set(previous_entries) != set(by_domain):
+        return True
+    for domain, inputs in by_domain.items():
+        previous = previous_entries.get(str(domain))
+        if previous is None:
+            return True
+        previous_inputs = list(previous.get("inputs", []) or [])
+        if _structural_inputs(previous_inputs) != _structural_inputs(inputs):
+            return True
+    return False
+
 def replace_entry_slice(
     registry: dict[str, Any],
     *,
@@ -90,15 +116,13 @@ def replace_entry_slice(
             [int(item.get("build_input_revision", 0) or 0) for item in previous_inputs],
             default=0,
         )
-        generation_changed = previous_entry is None or build_input_revision != previous_build_revision
         structural_changed = (
             previous_entry is None
             or _structural_inputs(previous_inputs) != _structural_inputs(inputs)
         )
-        # A fresh Foundation build-input generation is itself a lifecycle boundary.
-        # Consumers reconsume it even when the materialized technical payload is
-        # otherwise equivalent; Foundation does not prove semantic equivalence.
-        if generation_changed or structural_changed:
+        # Generation is evidence of a structural change, never a change trigger by itself.
+        # An equivalent refresh is idempotent and must not wake downstream domains.
+        if structural_changed:
             events.append({
                 "foundation_entry_id": entry_id,
                 "domain_id": domain,
