@@ -47,7 +47,19 @@ def build_catalog(hass: Any, *, revision: int, selected_integrations: list[str] 
     devices=dr.async_get(hass)
     candidates: list[FoundationCapabilityCandidate]=[]
 
-    for entity in registry.entities.values():
+    if selected is None:
+        entity_rows = list(registry.entities.values())
+    else:
+        selected_entry_ids = [
+            entry.entry_id for entry in entries if entry.domain in selected
+        ]
+        entity_rows = [
+            entity
+            for entry_id in selected_entry_ids
+            for entity in er.async_entries_for_config_entry(registry, entry_id)
+        ]
+
+    for entity in entity_rows:
         # Disabled registry entities are not executable/observable runtime sources.
         # Publishing them as equal candidates creates false ambiguity when an
         # integration has migrated/replaced an entity but HA retains the old row.

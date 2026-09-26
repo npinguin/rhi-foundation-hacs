@@ -163,6 +163,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         data["structural_refresh_task"] = None
 
     data["cancel_pending_structural_refresh"] = _cancel_pending_structural_refresh
+    data["request_structural_refresh"] = _request_structural_refresh
 
     async def _on_publication_changed(event: Event) -> None:
         _request_structural_refresh(
@@ -207,8 +208,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def _async_update_listener(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> None:
-    """Reload only after an explicit config/options save."""
-    await hass.config_entries.async_reload(entry.entry_id)
+    """Apply config/options changes in place; Foundation has no dynamic platform set."""
+    data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+    request_refresh = data.get("request_structural_refresh")
+    if callable(request_refresh):
+        request_refresh("config_entry_updated")
+        return
+    # Defensive fallback for an unexpected partial setup state.
+    await async_refresh_snapshot(hass, entry, reason="config_entry_updated_fallback")
+    async_dispatcher_send(hass, FOUNDATION_DISPATCH_SIGNAL, entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

@@ -40,19 +40,20 @@ def _integration_inventory(hass: Any, selected: list[str], specs: list[dict[str,
     } for domain, count in sorted(counts.items())]
 
 
-def _device_config_entry_map(hass: Any) -> dict[str, set[str]]:
-    """Map HA device ids to their technical config-entry ownership.
-
-    This is a topology fact owned by Home Assistant, not a domain semantic. It lets
-    Foundation honor a domain-published candidate_scope=config_entry while preserving
-    the exact device ids the user originally selected.
-    """
+def _device_config_entry_map(
+    hass: Any,
+    selected_device_ids: set[str],
+) -> dict[str, set[str]]:
+    """Resolve only explicitly selected HA devices to their owning config entry."""
     registry = dr.async_get(hass)
     out: dict[str, set[str]] = {}
-    for device in registry.devices.values():
-        entry_ids = {str(item) for item in (getattr(device, "config_entries", None) or set()) if item}
-        if entry_ids:
-            out[str(device.id)] = entry_ids
+    for device_id in sorted(selected_device_ids):
+        device = registry.async_get(device_id)
+        if device is None:
+            continue
+        entry_id = getattr(device, "config_entry_id", None)
+        if entry_id:
+            out[str(device_id)] = {str(entry_id)}
     return out
 
 
@@ -61,12 +62,6 @@ def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, A
     revision = max(1, int(config.get(CONF_CONFIGURATION_REVISION, 1)))
     selected = list(config.get(CONF_SELECTED_INTEGRATIONS, []))
     records, specs = read_publications(hass)
-    published_integrations = {
-        str(item.get("integration_domain"))
-        for spec in specs
-        for item in (spec.get("supported_sources") or [])
-        if isinstance(item, dict) and item.get("integration_domain")
-    }
     configured_integrations = {
         str(value)
         for value in (
@@ -75,7 +70,9 @@ def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, A
         )
         if value
     }
-    relevant_integrations = sorted(published_integrations | configured_integrations)
+    # Ordinary boot/refresh must inspect only explicit Foundation intent.
+    # Published support is configuration metadata, not permission to scan HA.
+    relevant_integrations = sorted(configured_integrations)
     catalog = build_catalog(
         hass,
         revision=revision,
@@ -84,13 +81,20 @@ def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, A
     persisted_concept_mappings = dict(config.get(CONF_CONCEPT_MAPPINGS, {}) or {})
     concept_mappings = rematerialize_concept_mapping_metadata(persisted_concept_mappings, specs)
     device_selections = dict(config.get(CONF_DEVICE_SELECTIONS, {}) or {})
+    selected_device_ids = {
+        str(device_id)
+        for selection in device_selections.values()
+        if isinstance(selection, dict)
+        for device_id in (selection.get("selected_device_ids") or [])
+        if device_id and str(device_id) != "__all_matching__"
+    }
     by_domain, selected_inputs = build_domain_inputs(
         specifications=specs,
         concept_mappings=concept_mappings,
         device_selections=device_selections,
         catalog=catalog,
         configuration_revision=revision,
-        device_config_entries=_device_config_entry_map(hass),
+        device_config_entries=_device_config_entry_map(hass, selected_device_ids),
     )
     concept_trace = build_concept_trace(
         specifications=specs,
