@@ -5,7 +5,6 @@ import asyncio
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import Event, HomeAssistant, ServiceCall
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
@@ -180,17 +179,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _handle_refresh_service(call: ServiceCall) -> None:
         await _refresh("explicit_service_refresh")
 
-
-    async def _on_home_assistant_started(_event: Event) -> None:
-        # Foundation may set up before late source config-entry platforms have
-        # materialised their entity-registry rows. Reconcile exactly once after HA
-        # startup so configured domain selections see the complete technical registry.
-        # This is a bounded boot-convergence trigger, not a runtime topology watcher.
-        _request_structural_refresh("home_assistant_started_convergence")
-
-    entry.async_on_unload(
-        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _on_home_assistant_started)
-    )
 
     unsub_publication = hass.bus.async_listen(
         DOMAIN_BUILD_SPECIFICATIONS_CHANGED_EVENT,

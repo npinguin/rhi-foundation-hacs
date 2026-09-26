@@ -61,7 +61,26 @@ def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, A
     revision = max(1, int(config.get(CONF_CONFIGURATION_REVISION, 1)))
     selected = list(config.get(CONF_SELECTED_INTEGRATIONS, []))
     records, specs = read_publications(hass)
-    catalog = build_catalog(hass, revision=revision, selected_integrations=None)
+    published_integrations = {
+        str(item.get("integration_domain"))
+        for spec in specs
+        for item in (spec.get("supported_sources") or [])
+        if isinstance(item, dict) and item.get("integration_domain")
+    }
+    configured_integrations = {
+        str(value)
+        for value in (
+            list(config.get(CONF_SELECTED_INTEGRATIONS, []) or [])
+            + list(config.get(CONF_TECHNICAL_SELECTIONS, []) or [])
+        )
+        if value
+    }
+    relevant_integrations = sorted(published_integrations | configured_integrations)
+    catalog = build_catalog(
+        hass,
+        revision=revision,
+        selected_integrations=relevant_integrations,
+    )
     persisted_concept_mappings = dict(config.get(CONF_CONCEPT_MAPPINGS, {}) or {})
     concept_mappings = rematerialize_concept_mapping_metadata(persisted_concept_mappings, specs)
     device_selections = dict(config.get(CONF_DEVICE_SELECTIONS, {}) or {})
@@ -93,6 +112,7 @@ def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, A
         "configuration_revision": revision,
         "developer_mode": bool(config.get(CONF_DEVELOPER_MODE, False)),
         "selected_integrations": selected,
+        "catalog_scope_integrations": relevant_integrations,
         "concept_mappings": concept_mappings,
         "technical_selections": list(config.get(CONF_TECHNICAL_SELECTIONS, []) or []),
         "device_selections": device_selections,
