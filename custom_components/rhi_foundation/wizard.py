@@ -414,6 +414,27 @@ class FoundationWizardMixin:
         integration = target["integration_domain"]
         devices = _candidate_devices(self.hass, integration)
 
+        # Some HA integrations expose useful entities without separate DeviceEntry
+        # objects. In that case there is nothing meaningful to refine at device
+        # level: the user's explicit integration selection is the complete scope.
+        # Persist the technical all-matching token for downstream build input, but
+        # do not misrepresent it as an explicit "select all devices" choice.
+        if not devices and user_input is None:
+            self._device_selections[target_id] = {
+                "selection_kind": "configured_domain_selection",
+                "integration_domain": integration,
+                "device_filter_mode": FILTER_ALL,
+                "selected_device_ids": [ALL_MATCHING],
+                "selection_state": "configured",
+                "selection_origin": "integration_scope_no_devices",
+                "creates_binding": False,
+                "creates_runtime_truth": False,
+                "creates_public_contract": False,
+                "executes_commands": False,
+            }
+            self._concept_device_index += 1
+            return await self.async_step_concept_devices()
+
         errors: dict[str, str] = {}
         if user_input is not None:
             mode = str(user_input["device_filter_mode"])
@@ -480,9 +501,12 @@ class FoundationWizardMixin:
             if selection.get("device_filter_mode") == FILTER_SPECIFIC:
                 count = len(selection.get("selected_device_ids", []))
                 lines.append(f"- {_integration_label(integration)}: {count} selected device(s)")
+            elif selection.get("selection_origin") == "integration_scope_no_devices":
+                lines.append(f"- {_integration_label(integration)}: integration scope (no separate HA devices)")
             else:
                 lines.append(f"- {_integration_label(integration)}: all matching devices")
-                review_required.append(_integration_label(integration))
+                if selection.get("selection_state") == "review_required":
+                    review_required.append(_integration_label(integration))
         if not lines:
             lines = ["- Not configured"]
 
@@ -564,6 +588,22 @@ class FoundationWizardMixin:
         target_id = target["target_id"]
         integration = target["integration_domain"]
         devices = _candidate_devices(self.hass, integration)
+        if not devices and user_input is None:
+            self._device_selections[target_id] = {
+                "selection_kind": "configured_technical_observer_selection",
+                "integration_domain": integration,
+                "device_filter_mode": FILTER_ALL,
+                "selected_device_ids": [ALL_MATCHING],
+                "selection_state": "configured",
+                "selection_origin": "integration_scope_no_devices",
+                "creates_binding": False,
+                "creates_runtime_truth": False,
+                "creates_public_contract": False,
+                "executes_commands": False,
+            }
+            self._technical_device_index += 1
+            return await self.async_step_technical_devices()
+
         errors: dict[str, str] = {}
         if user_input is not None:
             mode = str(user_input["device_filter_mode"])
@@ -629,7 +669,10 @@ class FoundationWizardMixin:
             if integration:
                 grouped[(domain, concept, label)].append(integration)
                 selection = self._device_selections.get(concept_target_id(domain, concept, integration), {})
-                if selection.get("device_filter_mode") == FILTER_ALL:
+                if (
+                    selection.get("device_filter_mode") == FILTER_ALL
+                    and selection.get("selection_state") == "review_required"
+                ):
                     review_required.append(f"{_domain_label(domain)} / {label} / {_integration_label(integration)}")
 
         domain_lines = [
