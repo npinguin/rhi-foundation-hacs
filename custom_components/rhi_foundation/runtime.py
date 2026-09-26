@@ -109,15 +109,19 @@ def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, A
     }
 
 
-def _publish_selected_inputs(hass: Any, entry_id: str, by_domain: dict[str, list[dict[str, Any]]], *, reason: str) -> None:
+def _prepare_selected_input_publication(
+    hass: Any,
+    entry_id: str,
+    by_domain: dict[str, list[dict[str, Any]]],
+    *,
+    reason: str,
+) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]]]:
+    """Prepare a handoff registry replacement without making it externally visible."""
     registry = hass.data.setdefault(SELECTED_DOMAIN_BUILD_INPUT_REGISTRY, {})
     next_registry, events = replace_entry_slice(
         registry, entry_id=entry_id, by_domain=by_domain, reason=reason
     )
-    registry.clear()
-    registry.update(next_registry)
-    for event_data in events:
-        hass.bus.async_fire(SELECTED_DOMAIN_BUILD_INPUTS_CHANGED_EVENT, event_data)
+    return registry, next_registry, events
 
 
 async def async_refresh_snapshot(hass: Any, entry: Any, *, reason: str) -> bool:
@@ -139,32 +143,52 @@ async def async_refresh_snapshot(hass: Any, entry: Any, *, reason: str) -> bool:
                 default=0,
             )
             generation = max(int(data.get("handoff_generation", 0) or 0), persisted_generation) + 1
-            data["handoff_generation"] = generation
             for inputs in candidate["selected_domain_build_inputs_by_domain"].values():
                 for selected_input in inputs:
                     selected_input["build_input_revision"] = generation
             for selected_input in candidate["selected_domain_build_inputs"]:
                 selected_input["build_input_revision"] = generation
             candidate["handoff_generation"] = generation
-            _publish_selected_inputs(hass, entry.entry_id, candidate["selected_domain_build_inputs_by_domain"], reason=reason)
-            health = data.setdefault("runtime_health", {})
+
+            # Construct the complete candidate before mutating either Foundation's
+            # local snapshot or the shared handoff registry.  This keeps structural
+            # publication atomic from downstream domains' point of view.
+            current_health = data.setdefault("runtime_health", {})
             derived = derive_success_health(candidate)
-            health.update({
+            next_health = {
+                **current_health,
                 **derived,
                 "revision": candidate["configuration_revision"],
                 "last_success": candidate["generated_at"],
                 "last_refresh_at": candidate["generated_at"],
                 "last_refresh_reason": reason,
                 "last_error": None,
-                "successful_refreshes": int(health.get("successful_refreshes", 0)) + 1,
-                "failed_refreshes": int(health.get("failed_refreshes", 0)),
-            })
+                "successful_refreshes": int(current_health.get("successful_refreshes", 0)) + 1,
+                "failed_refreshes": int(current_health.get("failed_refreshes", 0)),
+            }
             candidate["system_supervision"] = aggregate_system_supervision(
                 candidate.get("domain_supervisory_statuses", []),
-                foundation_health=health,
+                foundation_health=next_health,
             )
+            registry, next_registry, events = _prepare_selected_input_publication(
+                hass,
+                entry.entry_id,
+                candidate["selected_domain_build_inputs_by_domain"],
+                reason=reason,
+            )
+
+            # Commit local truth and shared handoff in one non-awaiting section.
+            # Downstream listeners are notified only after both views are coherent.
             snapshot = data.setdefault("snapshot", {})
-            snapshot.clear(); snapshot.update(candidate)
+            snapshot.clear()
+            snapshot.update(candidate)
+            registry.clear()
+            registry.update(next_registry)
+            data["handoff_generation"] = generation
+            current_health.clear()
+            current_health.update(next_health)
+            for event_data in events:
+                hass.bus.async_fire(SELECTED_DOMAIN_BUILD_INPUTS_CHANGED_EVENT, event_data)
             return True
         except Exception as exc:
             health = data.setdefault("runtime_health", {})
@@ -227,15 +251,28 @@ async def async_refresh_supervision_snapshot(hass: Any, entry: Any, *, reason: s
 
 def remove_published_inputs(hass: Any, entry_id: str) -> None:
     registry = hass.data.get(SELECTED_DOMAIN_BUILD_INPUT_REGISTRY, {})
-    removed: list[tuple[str, int]] = []
+    removed: list[tuple[str, int, int]] = []
     for key in [key for key, value in registry.items() if isinstance(value, dict) and value.get("foundation_entry_id") == entry_id]:
         value = registry.pop(key)
-        removed.append((str(value.get("domain_id") or key), int(value.get("configuration_revision", 1))))
-    for domain, revision in removed:
+        inputs = value.get("inputs", []) if isinstance(value.get("inputs"), list) else []
+        build_input_revision = max(
+            (
+                int(item.get("build_input_revision", 0) or 0)
+                for item in inputs
+                if isinstance(item, dict)
+            ),
+            default=int(value.get("configuration_revision", 1) or 1),
+        )
+        removed.append((
+            str(value.get("domain_id") or key),
+            int(value.get("configuration_revision", 1) or 1),
+            build_input_revision,
+        ))
+    for domain, configuration_revision, build_input_revision in removed:
         hass.bus.async_fire(SELECTED_DOMAIN_BUILD_INPUTS_CHANGED_EVENT, {
             "foundation_entry_id": entry_id,
             "domain_id": domain,
-            "configuration_revision": max(1, revision),
-            "build_input_revision": max(1, revision),
+            "configuration_revision": max(1, configuration_revision),
+            "build_input_revision": max(1, build_input_revision),
             "reason": "removed",
         })
