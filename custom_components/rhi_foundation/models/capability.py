@@ -27,6 +27,10 @@ class CapabilityEvidence:
     device_name: str | None = None
     device_manufacturer: str | None = None
     device_model: str | None = None
+    device_identifiers: tuple[tuple[str, str], ...] = ()
+    device_connections: tuple[tuple[str, str], ...] = ()
+    device_identifiers: tuple[tuple[str, str], ...] = ()
+    device_connections: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

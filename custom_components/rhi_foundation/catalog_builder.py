@@ -39,7 +39,20 @@ def _candidate(source: Any, capability_class: str, *, value_type: str, writable:
             state_class=None if state_class is None else str(state_class),
             native_unit=None if unit is None else str(unit),
         ),
-        evidence=CapabilityEvidence(provenance=provenance, **(device_evidence or {})),
+        evidence=CapabilityEvidence(
+            provenance=provenance,
+            **{
+                **(device_evidence or {}),
+                "device_identifiers": tuple(
+                    tuple(str(value) for value in pair)
+                    for pair in ((device_evidence or {}).get("device_identifiers") or [])
+                ),
+                "device_connections": tuple(
+                    tuple(str(value) for value in pair)
+                    for pair in ((device_evidence or {}).get("device_connections") or [])
+                ),
+            },
+        ),
         quality=CapabilityQuality(technical_match_confidence="high", availability=availability, ambiguity="none"),
     )
 
