@@ -11,11 +11,13 @@ from typing import Any
 
 from .const import (
     CONF_CONFIGURATION_REVISION,
+    CONF_CONFIGURATION_SURFACE_SELECTIONS,
     CONF_CONCEPT_MAPPINGS,
     CONF_DEVICE_SELECTIONS,
     CONF_SELECTED_INTEGRATIONS,
     CONF_TECHNICAL_SELECTIONS,
 )
+from .configured_surfaces import surface_selection_belongs_to_domain
 from .wizard_state import mapped_integrations
 
 
@@ -43,7 +45,7 @@ def effective_entry_configuration(
     overlay = dict(options or {})
     merged = dict(base)
     merged.update(overlay)
-    for key in (CONF_CONCEPT_MAPPINGS, CONF_DEVICE_SELECTIONS):
+    for key in (CONF_CONCEPT_MAPPINGS, CONF_DEVICE_SELECTIONS, CONF_CONFIGURATION_SURFACE_SELECTIONS):
         nested = dict(base.get(key, {}) or {})
         nested.update(dict(overlay.get(key, {}) or {}))
         merged[key] = nested
@@ -58,6 +60,14 @@ def configured_domains(config: dict[str, Any]) -> set[str]:
         if not isinstance(value, dict):
             continue
         domain_id = str(value.get("domain") or "")
+        if domain_id:
+            result.add(domain_id)
+    for key, value in (config.get(CONF_CONFIGURATION_SURFACE_SELECTIONS, {}) or {}).items():
+        if not isinstance(value, dict):
+            continue
+        domain_id = str(value.get("domain") or "")
+        if not domain_id and str(key).startswith("surface:"):
+            domain_id = str(key).split(":", 1)[1].split(".", 1)[0]
         if domain_id:
             result.add(domain_id)
     return result
@@ -117,6 +127,20 @@ def merge_domain_configuration(
     )
     merged[CONF_DEVICE_SELECTIONS] = devices
 
+    base_surfaces = dict(base_config.get(CONF_CONFIGURATION_SURFACE_SELECTIONS, {}) or {})
+    edited_surfaces = dict(edited_config.get(CONF_CONFIGURATION_SURFACE_SELECTIONS, {}) or {})
+    surfaces = {
+        key: value
+        for key, value in base_surfaces.items()
+        if not surface_selection_belongs_to_domain(key, value, domain_id)
+    }
+    surfaces.update({
+        key: value
+        for key, value in edited_surfaces.items()
+        if surface_selection_belongs_to_domain(key, value, domain_id)
+    })
+    merged[CONF_CONFIGURATION_SURFACE_SELECTIONS] = surfaces
+
     previous_revision = int(base_config.get(CONF_CONFIGURATION_REVISION, 0) or 0)
     merged[CONF_CONFIGURATION_REVISION] = (
         int(next_revision) if next_revision is not None else previous_revision + 1
@@ -147,6 +171,11 @@ def remove_domain_configuration(
         key: value
         for key, value in (config.get(CONF_DEVICE_SELECTIONS, {}) or {}).items()
         if not device_selection_belongs_to_domain(key, domain_id)
+    }
+    cleaned[CONF_CONFIGURATION_SURFACE_SELECTIONS] = {
+        key: value
+        for key, value in (config.get(CONF_CONFIGURATION_SURFACE_SELECTIONS, {}) or {}).items()
+        if not surface_selection_belongs_to_domain(key, value, domain_id)
     }
     previous_revision = int(config.get(CONF_CONFIGURATION_REVISION, 0) or 0)
     cleaned[CONF_CONFIGURATION_REVISION] = (

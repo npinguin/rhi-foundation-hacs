@@ -7,6 +7,8 @@ import inspect
 import json
 from typing import Any, Iterable
 
+from .configuration_surfaces import validate_configuration_surfaces as _validate_configuration_surfaces
+from .configured_surfaces import configuration_surface_index
 from .const import SAFETY, SOURCE_KINDS
 from .shared_registry import iter_domain_build_specification_providers
 
@@ -195,6 +197,7 @@ def validate_specification(spec: dict[str, Any], publisher_domain: str) -> list[
                 issues.extend(_validate_predicates(hints, input_id=input_id, raw_capability_id=raw_capability_id, surface="hint"))
                 if not conditions and not hints:
                     issues.append(f"invalid:integration_match_conditions:{input_id}:{raw_capability_id or 'missing'}")
+    issues.extend(_validate_configuration_surfaces(spec.get("configuration_surfaces")))
     safety=spec.get("safety") or {}
     for key,value in SAFETY.items():
         if safety.get(key) is not value: issues.append(f"unsafe:{key}")
@@ -219,6 +222,10 @@ def read_publications(hass: Any) -> tuple[list[PublicationRecord], list[dict[str
             specs = _materialize(provider)
             for spec in specs:
                 issues.extend(validate_specification(spec, publisher))
+            try:
+                configuration_surface_index(specs)
+            except ValueError as exc:
+                issues.append(str(exc))
             local_builders=[str(spec.get("builder_id")) for spec in specs if spec.get("builder_id")]
             if len(local_builders) != len(set(local_builders)):
                 issues.append("duplicate_builder_id_within_provider")

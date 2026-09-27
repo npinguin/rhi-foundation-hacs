@@ -182,6 +182,11 @@ def _rhi_submodules(snapshot: dict[str, Any]) -> dict[str, dict[str, Any]]:
         for mapping in (snapshot.get("concept_mappings", {}) or {}).values()
         if isinstance(mapping, dict) and mapping.get("domain")
     }
+    configured_domains.update(
+        str(selection.get("domain"))
+        for selection in (snapshot.get("configuration_surface_selections", {}) or {}).values()
+        if isinstance(selection, dict) and selection.get("domain")
+    )
     result: dict[str, dict[str, Any]] = {}
     for module in sorted(installed | set(publications)):
         publication = publications.get(module) or {}
@@ -237,12 +242,13 @@ class FoundationConfigurationSensor(FoundationBaseSensor):
             if m["publication_status"] == "valid" and m["specification_count"] > 0
         )
         mappings = snapshot.get("concept_mappings", {}) or {}
+        surfaces = snapshot.get("configuration_surface_selections", {}) or {}
         inputs = snapshot.get("selected_domain_build_inputs", []) or []
         if installed_count == 0:
             return "NOT_REQUIRED"
         if invalid_count > 0 or configurable_count == 0:
             return "BLOCKED"
-        if not mappings:
+        if not mappings and not surfaces:
             return "REQUIRED"
         if not inputs:
             return "PENDING"
@@ -276,6 +282,9 @@ class FoundationConfigurationSensor(FoundationBaseSensor):
                 if m["publication_status"] == "valid" and m["specification_count"] > 0
             ),
             "concept_mapping_count": len(snapshot.get("concept_mappings", {}) or {}),
+            "configuration_surface_selection_count": len(
+                snapshot.get("configuration_surface_selections", {}) or {}
+            ),
             "selected_build_input_count": len(snapshot.get("selected_domain_build_inputs", []) or []),
             "invalid_publications": invalid,
             "valid_publications_without_specifications": empty_valid,

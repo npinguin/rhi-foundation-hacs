@@ -11,7 +11,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 
-from .const import CONF_CONCEPT_MAPPINGS, CONF_DEVELOPER_MODE
+from .const import CONF_CONFIGURATION_SURFACE_SELECTIONS, CONF_CONCEPT_MAPPINGS, CONF_DEVELOPER_MODE
 from .domain_config import (
     configured_domains,
     effective_entry_configuration,
@@ -219,10 +219,18 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
             f"- {label}: " + ", ".join(_integration_label(i) for i in sorted(integrations))
             for (_concept, label), integrations in sorted(grouped.items())
         ]
+        surface_lines = [
+            f"- {item.get('display_name') or item.get('object_type') or item.get('surface_id')}"
+            for item in self._configuration_surface_selections.values()
+            if isinstance(item, dict) and str(item.get("domain") or "") == domain_id
+        ]
         summary = "\n".join(
             [
                 f"Domain: {_domain_label(domain_id)}",
-                *(lines or ["- Not configured"]),
+                *(lines or ["- No integration mappings"]),
+                "",
+                "Custom logical device mappings:",
+                *(surface_lines or ["- None"]),
                 "",
                 "Needs review because all matching devices were selected:",
                 *([f"- {item}" for item in review_required] or ["- None"]),

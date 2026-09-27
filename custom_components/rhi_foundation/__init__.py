@@ -10,6 +10,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
     CONF_CONFIGURATION_REVISION,
+    CONF_CONFIGURATION_SURFACE_SELECTIONS,
     CONF_CONCEPT_MAPPINGS,
     CONF_DEVELOPER_MODE,
     CONF_DEVICE_SELECTIONS,
@@ -26,7 +27,7 @@ from .const import (
 from .runtime import async_refresh_snapshot, async_refresh_supervision_snapshot, remove_published_inputs
 from .wizard_state import canonicalize_multi_mapping_shape
 
-CONFIG_ENTRY_VERSION = 5
+CONFIG_ENTRY_VERSION = 6
 _MAX_COALESCED_REASONS = 8
 
 
@@ -42,6 +43,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         payload.setdefault(CONF_CONCEPT_MAPPINGS, {})
         payload.setdefault(CONF_TECHNICAL_SELECTIONS, [])
         payload.setdefault(CONF_DEVICE_SELECTIONS, {})
+        payload.setdefault(CONF_CONFIGURATION_SURFACE_SELECTIONS, {})
         payload.setdefault(CONF_CONFIGURATION_REVISION, 1)
         mappings = dict(payload.get(CONF_CONCEPT_MAPPINGS, {}) or {})
         for mapping in mappings.values():

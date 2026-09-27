@@ -3,8 +3,8 @@ from __future__ import annotations
 
 DOMAIN = "rhi_foundation"
 MODULE_DISPLAY_NAME = "Robotix Home Intelligence - Foundation Module"
-RELEASE = "F1.8.28"
-RELEASE_NAME = "CAPABILITY_EVIDENCE_RUNTIME_HOTFIX"
+RELEASE = "F1.8.29"
+RELEASE_NAME = "OPTIONAL_DOMAIN_CONFIGURATION_SURFACES"
 SHARED_BASELINE_ID = "RHI_SHARED_ARCHITECTURE_BASELINE"
 SHARED_BASELINE_VERSION = "1.8.1"
 EXECUTION_MODEL = "configuration_time_active_runtime_passive"
@@ -17,6 +17,7 @@ CONF_SELECTED_INTEGRATIONS = "selected_integrations"
 CONF_CONCEPT_MAPPINGS = "concept_mappings"
 CONF_TECHNICAL_SELECTIONS = "technical_selections"
 CONF_DEVICE_SELECTIONS = "device_selections"
+CONF_CONFIGURATION_SURFACE_SELECTIONS = "configuration_surface_selections"
 CONF_CONFIGURATION_REVISION = "configuration_revision"
 
 DEFAULT_DEVELOPER_MODE = False

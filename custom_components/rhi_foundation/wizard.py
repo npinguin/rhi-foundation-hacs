@@ -12,6 +12,7 @@ from homeassistant.helpers import device_registry as dr
 
 from .const import (
     CONF_CONFIGURATION_REVISION,
+    CONF_CONFIGURATION_SURFACE_SELECTIONS,
     CONF_CONCEPT_MAPPINGS,
     CONF_DEVELOPER_MODE,
     CONF_DEVICE_SELECTIONS,
@@ -21,9 +22,11 @@ from .const import (
     DOMAIN,
     MODULE_DISPLAY_NAME,
 )
+from .configured_surfaces import configuration_surface_index
 from .ha_registry import device_belongs_to_config_entry
 from .publications import read_publications
 from .shared_registry import async_refresh_framework_resource_providers, get_framework_resource_provider, iter_framework_resource_providers
+from .wizard_surfaces import ConfigurationSurfaceWizardMixin
 from .wizard_state import (
     concept_target_id,
     default_device_selection,
@@ -92,8 +95,10 @@ def _domain_records(
     """Build domain/concept presentation records from publications + preserved intent."""
     installed = _installed_integrations(hass)
     grouped: dict[tuple[str, str], dict[str, Any]] = {}
+    specifications = _specifications(hass)
+    surface_index = configuration_surface_index(specifications)
 
-    for spec in _specifications(hass):
+    for spec in specifications:
         concept = spec.get("concept") or {}
         domain = str(spec["domain_id"])
         concept_id = str(concept["concept_id"])
@@ -153,6 +158,11 @@ def _domain_records(
         row["available_integrations"] = sorted(row["builders"])
         row["published_integrations"] = sorted(row["published_integrations"])
         row["configured_integrations"] = sorted(row.get("configured_integrations", set()))
+        row["configuration_surfaces"] = [
+            dict(surface)
+            for (domain_id, concept_id, _surface_id), surface in surface_index.items()
+            if domain_id == row["domain"] and concept_id == row["concept"]
+        ]
         domain_presentation, concept_presentation = _presentation_text(row["specs"])
         row["domain_presentation"] = domain_presentation
         row["concept_presentation"] = concept_presentation
@@ -214,7 +224,7 @@ def _candidate_devices(hass: Any, integration: str, resource_types: set[str] | N
 
 
 
-class FoundationWizardMixin:
+class FoundationWizardMixin(ConfigurationSurfaceWizardMixin):
     """Concept-centric wizard state."""
 
     _developer_mode: bool
@@ -239,6 +249,12 @@ class FoundationWizardMixin:
         self._concept_mappings = dict(defaults.get(CONF_CONCEPT_MAPPINGS, {}) or {})
         self._technical_selections = list(defaults.get(CONF_TECHNICAL_SELECTIONS, []) or [])
         self._device_selections = dict(defaults.get(CONF_DEVICE_SELECTIONS, {}) or {})
+        self._configuration_surface_selections = dict(
+            defaults.get(CONF_CONFIGURATION_SURFACE_SELECTIONS, {}) or {}
+        )
+        self._surface_queue = []
+        self._surface_index = 0
+        self._active_surface_instance_id = None
         self._domain_queue = []
         self._domain_index = 0
         self._concept_queue = []
@@ -569,8 +585,8 @@ class FoundationWizardMixin:
         # still shows the complete configuration.  Only exceptional scopes
         # such as all-matching remain a mandatory concept-review step.
         if not review_required and user_input is None:
-            self._concept_index += 1
-            return await self.async_step_concept_intro()
+            self._prepare_surface_queue()
+            return await self.async_step_concept_surfaces()
 
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -585,8 +601,8 @@ class FoundationWizardMixin:
                     selection = self._device_selections.get(target_id)
                     if selection and selection.get("device_filter_mode") == FILTER_ALL:
                         selection["selection_state"] = "configured"
-                self._concept_index += 1
-                return await self.async_step_concept_intro()
+                self._prepare_surface_queue()
+                return await self.async_step_concept_surfaces()
 
         schema: dict[Any, Any] = {}
         if review_required:
@@ -738,10 +754,19 @@ class FoundationWizardMixin:
             for (domain, _concept, label), integrations in sorted(grouped.items())
         ]
         technical_lines = [f"- {_integration_label(item)}" for item in sorted(self._technical_selections)]
+        surface_lines = [
+            f"- {_domain_label(str(item.get('domain') or ''))} / "
+            f"{item.get('display_name') or item.get('object_type') or item.get('surface_id')}"
+            for item in self._configuration_surface_selections.values()
+            if isinstance(item, dict)
+        ]
         summary = "\n".join(
             [
                 "Configured domain concepts:",
                 *(domain_lines or ["- None"]),
+                "",
+                "Custom logical device mappings:",
+                *(surface_lines or ["- None"]),
                 "",
                 "Technical observation only:",
                 *(technical_lines or ["- None"]),
@@ -766,6 +791,7 @@ class FoundationWizardMixin:
             CONF_CONCEPT_MAPPINGS: self._concept_mappings,
             CONF_TECHNICAL_SELECTIONS: self._technical_selections,
             CONF_DEVICE_SELECTIONS: self._device_selections,
+            CONF_CONFIGURATION_SURFACE_SELECTIONS: self._configuration_surface_selections,
             CONF_CONFIGURATION_REVISION: previous_revision + 1,
         }
 
@@ -773,7 +799,7 @@ class FoundationWizardMixin:
 class RhiFoundationConfigFlow(FoundationWizardMixin, config_entries.ConfigFlow, domain=DOMAIN):
     """Initial Foundation wizard."""
 
-    VERSION = 5
+    VERSION = 6
 
     async def async_step_user(self, user_input=None):
         if not getattr(self, "_initialized", False):
