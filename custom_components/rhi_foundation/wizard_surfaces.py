@@ -14,15 +14,6 @@ from .configured_surfaces import (
 )
 from .wizard_candidates import compatible_entity_ids, entity_source_selection
 
-ACTION_ADD = "add"
-ACTION_BACK = "back"
-ACTION_CONFIGURE = "configure"
-ACTION_CONTINUE = "continue"
-ACTION_EDIT = "edit"
-ACTION_REMOVE = "remove"
-ACTION_SAVE = "save"
-
-
 class ConfigurationSurfaceWizardMixin:
     """Render domain-owned configuration descriptors without domain semantics."""
 
@@ -55,6 +46,7 @@ class ConfigurationSurfaceWizardMixin:
         return result
 
     async def async_step_concept_surfaces(self, user_input=None):
+        """Render the next configured surface without encoding navigation as data."""
         if self._surface_index >= len(self._surface_queue):
             self._concept_index += 1
             return await self.async_step_concept_intro()
@@ -62,87 +54,93 @@ class ConfigurationSurfaceWizardMixin:
         surface = self._current_surface()
         instances = self._surface_instances(surface)
         cardinality = str(surface.get("cardinality") or "")
-        actions: dict[str, str] = {
-            ACTION_CONTINUE: "Continue without further changes",
-            ACTION_BACK: "Back to source selection",
-        }
+
+        # A singleton is not an action menu. Enter its fields directly; the
+        # native HA form submit is the forward/save action.
         if cardinality == "singleton":
-            actions[ACTION_CONFIGURE] = "Configure / edit"
-            if instances:
-                actions[ACTION_REMOVE] = "Remove configured mapping"
-        else:
-            actions[ACTION_ADD] = "Add logical device"
-            if instances:
-                actions[ACTION_EDIT] = "Edit logical device"
-                actions[ACTION_REMOVE] = "Remove logical device"
+            self._active_surface_instance_id = "singleton"
+            return await self.async_step_surface_fields()
 
+        options: dict[str, str] = {
+            "surface_add": "Add logical device",
+            "surface_continue": "Next",
+            "surface_back": "Back",
+        }
+        if instances:
+            options["surface_edit"] = "Edit logical device"
+            options["surface_remove"] = "Remove logical device"
+        return self.async_show_menu(
+            step_id="concept_surfaces",
+            menu_options=options,
+            description_placeholders=self._surface_placeholders(surface, instances),
+        )
+
+    async def async_step_surface_add(self, user_input=None):
+        self._active_surface_instance_id = uuid4().hex[:12]
+        return await self.async_step_surface_fields()
+
+    async def async_step_surface_continue(self, user_input=None):
+        self._surface_index += 1
+        return await self.async_step_concept_surfaces()
+
+    async def async_step_surface_back(self, user_input=None):
+        return await self.async_step_concept_source()
+
+    async def async_step_surface_edit(self, user_input=None):
+        surface = self._current_surface()
+        instances = self._surface_instances(surface)
+        if not instances:
+            return await self.async_step_concept_surfaces()
         if user_input is not None:
-            action = str(user_input.get("surface_action") or ACTION_CONTINUE)
-            if action == ACTION_BACK:
-                return await self.async_step_concept_integrations()
-            if action == ACTION_CONTINUE:
-                self._surface_index += 1
-                return await self.async_step_concept_surfaces()
-            if action == ACTION_CONFIGURE:
-                self._active_surface_instance_id = "singleton"
-                return await self.async_step_surface_fields()
-            if action == ACTION_ADD:
-                self._active_surface_instance_id = uuid4().hex[:12]
-                return await self.async_step_surface_fields()
-
             selected_key = str(user_input.get("instance_key") or "")
-            if action in {ACTION_EDIT, ACTION_REMOVE} and selected_key not in instances:
-                return self.async_show_form(
-                    step_id="concept_surfaces",
-                    data_schema=self._surface_menu_schema(surface, instances),
-                    errors={"base": "select_instance"},
-                    description_placeholders=self._surface_placeholders(surface, instances),
-                )
-            if action == ACTION_REMOVE:
-                self._configuration_surface_selections.pop(selected_key, None)
-                return await self.async_step_concept_surfaces()
-            if action == ACTION_EDIT:
+            if selected_key in instances:
                 self._active_surface_instance_id = str(
                     instances[selected_key].get("instance_id") or ""
                 )
                 return await self.async_step_surface_fields()
-
+            return self.async_show_form(
+                step_id="surface_edit",
+                data_schema=self._surface_instance_schema(instances),
+                errors={"base": "select_instance"},
+                description_placeholders=self._surface_placeholders(surface, instances),
+            )
         return self.async_show_form(
-            step_id="concept_surfaces",
-            data_schema=self._surface_menu_schema(surface, instances),
+            step_id="surface_edit",
+            data_schema=self._surface_instance_schema(instances),
             description_placeholders=self._surface_placeholders(surface, instances),
         )
 
-    def _surface_menu_schema(
-        self,
-        surface: dict[str, Any],
+    async def async_step_surface_remove(self, user_input=None):
+        surface = self._current_surface()
+        instances = self._surface_instances(surface)
+        if not instances:
+            return await self.async_step_concept_surfaces()
+        if user_input is not None:
+            selected_key = str(user_input.get("instance_key") or "")
+            if selected_key in instances:
+                self._configuration_surface_selections.pop(selected_key, None)
+                return await self.async_step_concept_surfaces()
+            return self.async_show_form(
+                step_id="surface_remove",
+                data_schema=self._surface_instance_schema(instances),
+                errors={"base": "select_instance"},
+                description_placeholders=self._surface_placeholders(surface, instances),
+            )
+        return self.async_show_form(
+            step_id="surface_remove",
+            data_schema=self._surface_instance_schema(instances),
+            description_placeholders=self._surface_placeholders(surface, instances),
+        )
+
+    @staticmethod
+    def _surface_instance_schema(
         instances: dict[str, dict[str, Any]],
     ) -> vol.Schema:
-        cardinality = str(surface.get("cardinality") or "")
-        actions: dict[str, str] = {
-            ACTION_CONTINUE: "Continue without further changes",
-            ACTION_BACK: "Back to source selection",
+        choices = {
+            key: str(value.get("display_name") or value.get("instance_id") or key)
+            for key, value in instances.items()
         }
-        if cardinality == "singleton":
-            actions[ACTION_CONFIGURE] = "Configure / edit"
-            if instances:
-                actions[ACTION_REMOVE] = "Remove configured mapping"
-        else:
-            actions[ACTION_ADD] = "Add logical device"
-            if instances:
-                actions[ACTION_EDIT] = "Edit logical device"
-                actions[ACTION_REMOVE] = "Remove logical device"
-
-        schema: dict[Any, Any] = {
-            vol.Required("surface_action", default=ACTION_CONFIGURE if cardinality == "singleton" else ACTION_CONTINUE): vol.In(actions)
-        }
-        if instances and cardinality == "multiple":
-            choices = {
-                key: str(value.get("display_name") or value.get("instance_id") or key)
-                for key, value in instances.items()
-            }
-            schema[vol.Optional("instance_key")] = vol.In(choices)
-        return vol.Schema(schema)
+        return vol.Schema({vol.Required("instance_key"): vol.In(choices)})
 
     def _surface_placeholders(
         self,
@@ -177,10 +175,6 @@ class ConfigurationSurfaceWizardMixin:
         fields = list(surface.get("fields") or [])
 
         if user_input is not None:
-            action = str(user_input.get("surface_field_action") or ACTION_SAVE)
-            if action == ACTION_BACK:
-                return await self.async_step_concept_surfaces()
-
             selected_fields = {
                 str(field.get("field_id"))
                 for field in fields
@@ -237,6 +231,8 @@ class ConfigurationSurfaceWizardMixin:
                 "creates_public_contract": False,
                 "executes_commands": False,
             }
+            if str(surface.get("cardinality") or "") == "singleton":
+                self._surface_index += 1
             return await self.async_step_concept_surfaces()
 
         return self.async_show_form(
@@ -275,7 +271,4 @@ class ConfigurationSurfaceWizardMixin:
             marker = vol.Optional(field_id, default=previous) if previous else vol.Optional(field_id)
             schema[marker] = selector.EntitySelector(config)
 
-        schema[vol.Required("surface_field_action", default=ACTION_SAVE)] = vol.In(
-            {ACTION_SAVE: "Save", ACTION_BACK: "Back without changes"}
-        )
         return vol.Schema(schema)

@@ -350,7 +350,7 @@ class FoundationWizardMixin(ConfigurationSurfaceWizardMixin):
 
         concept = self._current_concept()
         if user_input is not None:
-            return await self.async_step_concept_integrations()
+            return await self.async_step_concept_source()
 
         available = concept["available_integrations"]
         unavailable = sorted(set(concept["published_integrations"]) - set(available))
@@ -370,6 +370,63 @@ class FoundationWizardMixin(ConfigurationSurfaceWizardMixin):
                 "position": f"{self._concept_index + 1}/{len(self._concept_queue)}",
             },
         )
+
+    async def async_step_concept_source(self, user_input=None):
+        """Choose the source path before configuring source-specific details."""
+        concept = self._current_concept()
+        if not concept.get("configuration_surfaces"):
+            return await self.async_step_concept_integrations()
+
+        available = ", ".join(
+            _integration_label(item) for item in concept.get("available_integrations", [])
+        ) or "No installed published sources"
+        return self.async_show_menu(
+            step_id="concept_source",
+            menu_options={
+                "concept_source_integrations": "Use integration / Home Assistant sources",
+                "concept_source_entities": "Configure directly from Home Assistant entities",
+                "concept_source_back": "Back",
+            },
+            description_placeholders={
+                "concept": str(concept.get("label") or concept.get("concept") or ""),
+                "available_integrations": available,
+            },
+        )
+
+    async def async_step_concept_source_integrations(self, user_input=None):
+        """Use the published integration/device discovery path for this concept."""
+        concept = self._current_concept()
+        domain = str(concept["domain"])
+        concept_id = str(concept["concept"])
+        self._configuration_surface_selections = {
+            key: value
+            for key, value in self._configuration_surface_selections.items()
+            if not (
+                isinstance(value, dict)
+                and str(value.get("domain") or "") == domain
+                and str(value.get("concept") or "") == concept_id
+            )
+        }
+        return await self.async_step_concept_integrations()
+
+    async def async_step_concept_source_entities(self, user_input=None):
+        """Use the domain-published direct entity-mapping path for this concept."""
+        concept = self._current_concept()
+        domain = str(concept["domain"])
+        concept_id = str(concept["concept"])
+        existing = mappings_for_concept(self._concept_mappings, domain, concept_id)
+        for integration in list(existing):
+            self._concept_mappings.pop(mapping_key(domain, concept_id, integration), None)
+            self._device_selections.pop(
+                concept_target_id(domain, concept_id, integration), None
+            )
+        self._recompute_selected_integrations()
+        self._prepare_surface_queue()
+        return await self.async_step_concept_surfaces()
+
+    async def async_step_concept_source_back(self, user_input=None):
+        """Return to the concept explanation without committing working state."""
+        return await self.async_step_concept_intro()
 
     async def async_step_concept_integrations(self, user_input=None):
         """Choose zero, one, or many integrations for the current concept."""

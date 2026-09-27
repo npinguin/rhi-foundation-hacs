@@ -20,9 +20,11 @@ def compatible_entity_ids(hass: Any, field: dict[str, Any]) -> list[str]:
             continue
         entity_id = str(entity.entity_id)
         entity_domain = entity_id.split(".", 1)[0]
-        device_class = getattr(entity, "device_class", None)
-        state_class = getattr(entity, "state_class", None)
-        unit = getattr(entity, "unit_of_measurement", None)
+        state = hass.states.get(entity_id)
+        attributes = state.attributes if state is not None else {}
+        device_class = attributes.get("device_class") or getattr(entity, "device_class", None)
+        state_class = attributes.get("state_class")
+        unit = attributes.get("unit_of_measurement")
         capabilities = set(
             classify_entity(
                 entity_domain=entity_domain,
@@ -50,9 +52,11 @@ def entity_source_selection(hass: Any, entity_id: str) -> dict[str, Any] | None:
     entry = hass.config_entries.async_get_entry(entry_id) if entry_id else None
     integration_domain = str(getattr(entry, "domain", "") or "")
     entity_domain = str(entity.entity_id).split(".", 1)[0]
-    device_class = getattr(entity, "device_class", None)
-    state_class = getattr(entity, "state_class", None)
-    unit = getattr(entity, "unit_of_measurement", None)
+    state = hass.states.get(str(entity.entity_id))
+    attributes = state.attributes if state is not None else {}
+    device_class = attributes.get("device_class") or getattr(entity, "device_class", None)
+    state_class = attributes.get("state_class")
+    unit = attributes.get("unit_of_measurement")
 
     return {
         "source_identity": {

@@ -72,13 +72,42 @@
         "title": "No configurable RHI domains available",
         "description": "Foundation requires at least one valid domain publication containing one or more DomainBuildSpecifications.\n\nCurrent domain publication status:\n{publication_status}\n\nFoundation will not invent domain concepts or silently fall back to technical guessing. Review the affected submodule diagnostics, then reopen Foundation configuration after the publication issue is corrected.",
         "data": {}
+      },
+      "concept_source": {
+        "title": "Choose source for {concept}",
+        "description": "Choose how Foundation should obtain this concept. Published installed sources: {available_integrations}. Direct entity mapping is an alternative source path; it does not depend on Home Assistant Energy."
+      },
+      "concept_surfaces": {
+        "title": "Configure {surface}",
+        "description": "{domain} · {concept}\\nCardinality: {cardinality} · Configured: {configured_count}\\n{configured_instances}"
+      },
+      "surface_fields": {
+        "title": "Configure {surface}",
+        "description": "{domain} · {concept}\\nSelect the Home Assistant entities that provide the domain-published measurements. The domain defines the minimum valid combination; Foundation only filters technically compatible entities."
+      },
+      "surface_edit": {
+        "title": "Choose logical device to edit",
+        "description": "{surface}: {configured_count} configured logical device(s).",
+        "data": {
+          "instance_key": "Logical device"
+        }
+      },
+      "surface_remove": {
+        "title": "Choose logical device to remove",
+        "description": "{surface}: {configured_count} configured logical device(s). Removal affects the working configuration only until the final review is saved.",
+        "data": {
+          "instance_key": "Logical device"
+        }
       }
     },
     "error": {
       "select_at_least_one_device": "Select at least one device, or choose All matching devices.",
       "invalid_device_filter_mode": "Choose a valid device filtering mode.",
       "confirm_all_matching": "Explicitly confirm the all-matching selection before continuing.",
-      "invalid_domain": "Choose a valid published RHI domain."
+      "invalid_domain": "Choose a valid published RHI domain.",
+      "select_instance": "Choose a configured logical device.",
+      "minimum_not_satisfied": "Select the minimum required combination of entities for this logical device.",
+      "entity_unavailable": "The selected entity is no longer available in the Foundation candidate catalog."
     }
   },
   "options": {
@@ -166,6 +195,32 @@
         "title": "No configurable RHI domains available",
         "description": "Foundation has no current or preserved domain configuration to edit. Install a publishing RHI domain and reopen Foundation configuration.",
         "data": {}
+      },
+      "concept_source": {
+        "title": "Choose source for {concept}",
+        "description": "Choose how Foundation should obtain this concept. Published installed sources: {available_integrations}. Direct entity mapping is an alternative source path; it does not depend on Home Assistant Energy."
+      },
+      "concept_surfaces": {
+        "title": "Configure {surface}",
+        "description": "{domain} · {concept}\\nCardinality: {cardinality} · Configured: {configured_count}\\n{configured_instances}"
+      },
+      "surface_fields": {
+        "title": "Configure {surface}",
+        "description": "{domain} · {concept}\\nSelect the Home Assistant entities that provide the domain-published measurements. The domain defines the minimum valid combination; Foundation only filters technically compatible entities."
+      },
+      "surface_edit": {
+        "title": "Choose logical device to edit",
+        "description": "{surface}: {configured_count} configured logical device(s).",
+        "data": {
+          "instance_key": "Logical device"
+        }
+      },
+      "surface_remove": {
+        "title": "Choose logical device to remove",
+        "description": "{surface}: {configured_count} configured logical device(s). Removal affects the working configuration only until the final review is saved.",
+        "data": {
+          "instance_key": "Logical device"
+        }
       }
     },
     "error": {
@@ -174,7 +229,10 @@
       "confirm_all_matching": "Explicitly confirm the all-matching selection before continuing.",
       "invalid_domain": "Choose a valid RHI domain.",
       "domain_not_configured": "This domain has no Foundation configuration to remove.",
-      "foundation_settings_cannot_be_removed": "Foundation technical settings can be changed but not removed as a domain."
+      "foundation_settings_cannot_be_removed": "Foundation technical settings can be changed but not removed as a domain.",
+      "select_instance": "Choose a configured logical device.",
+      "minimum_not_satisfied": "Select the minimum required combination of entities for this logical device.",
+      "entity_unavailable": "The selected entity is no longer available in the Foundation candidate catalog."
     }
   }
 }
