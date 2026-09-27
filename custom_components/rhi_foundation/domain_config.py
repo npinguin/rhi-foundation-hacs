@@ -29,6 +29,28 @@ def device_selection_belongs_to_domain(target_id: str, domain_id: str) -> bool:
     return str(target_id).startswith(f"domain:{domain_id}.")
 
 
+def effective_entry_configuration(
+    data: dict[str, Any] | None,
+    options: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Compose config-entry data/options without dropping nested domain intent.
+
+    Home Assistant options are newer than data, but Foundation-owned nested maps are
+    domain-scoped and must merge by key rather than replace wholesale. This helper is
+    the only supported read boundary for one persisted Foundation config entry.
+    """
+    base = dict(data or {})
+    overlay = dict(options or {})
+    merged = dict(base)
+    merged.update(overlay)
+    for key in (CONF_CONCEPT_MAPPINGS, CONF_DEVICE_SELECTIONS):
+        nested = dict(base.get(key, {}) or {})
+        nested.update(dict(overlay.get(key, {}) or {}))
+        merged[key] = nested
+    _recompute_selected_integrations(merged)
+    return merged
+
+
 def configured_domains(config: dict[str, Any]) -> set[str]:
     """Return domain ids that currently own persisted Foundation intent."""
     result: set[str] = set()

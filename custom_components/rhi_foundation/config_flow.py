@@ -14,9 +14,11 @@ from homeassistant import config_entries
 from .const import CONF_CONCEPT_MAPPINGS, CONF_DEVELOPER_MODE
 from .domain_config import (
     configured_domains,
+    effective_entry_configuration,
     merge_domain_configuration,
     remove_domain_configuration,
 )
+from .shared_registry import async_refresh_framework_resource_providers
 from .wizard import (
     FoundationWizardMixin,
     RhiFoundationConfigFlow as _WizardConfigFlow,
@@ -51,6 +53,7 @@ async def _scoped_initial_user(self: _WizardConfigFlow, user_input=None):
     if not getattr(self, "_initialized", False):
         self._initialize_state()
 
+    await async_refresh_framework_resource_providers(self.hass)
     records = _domain_records(self.hass, self._concept_mappings)
     if not records:
         return await self.async_step_no_configurable_domains()
@@ -84,11 +87,11 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
 
     async def async_step_init(self, user_input=None):
         if not getattr(self, "_initialized", False):
-            defaults = dict(self.config_entry.data)
-            defaults.update(dict(self.config_entry.options))
+            defaults = effective_entry_configuration(self.config_entry.data, self.config_entry.options)
             self._base_config = defaults
             self._selected_domain_id = None
             self._initialize_state(defaults)
+        await async_refresh_framework_resource_providers(self.hass)
         self._records = _domain_records(self.hass, self._concept_mappings)
         return await self.async_step_domain_select(user_input)
 

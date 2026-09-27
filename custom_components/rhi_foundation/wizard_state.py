@@ -79,21 +79,41 @@ def canonicalize_multi_mapping_shape(
     return new_mappings, new_devices
 
 
+
+def framework_resources_available(
+    resources: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+    integration: str,
+    specification: dict[str, Any],
+) -> bool:
+    """Return whether framework resources exist for this exact published source scope."""
+    resource_types = {
+        str(source.get("resource_type") or "")
+        for source in (specification.get("supported_sources") or [])
+        if isinstance(source, dict)
+        and str(source.get("integration_domain") or "") == str(integration)
+        and source.get("resource_type")
+    }
+    return any(
+        isinstance(resource, dict)
+        and resource.get("resource_id")
+        and (not resource_types or str(resource.get("resource_type") or "") in resource_types)
+        for resource in (resources or [])
+    )
+
 def default_integration_selection(
     available_integrations: list[str],
     existing_integrations: set[str] | list[str],
 ) -> list[str]:
     """Return refinement-first integration defaults.
 
-    A new concept defaults to every currently available integration so the
-    user refines by deselecting rather than having to build a selection from
-    scratch.  Reconfiguration preserves an existing explicit selection and
-    does not silently re-enable integrations the user previously removed.
+    A new concept starts with no provider selected: provider choice is explicit
+    user intent. Reconfiguration preserves an existing explicit selection and does
+    not silently re-enable integrations the user previously removed.
     """
     existing = {str(item) for item in existing_integrations}
     if existing:
         return sorted(existing)
-    return sorted({str(item) for item in available_integrations})
+    return []
 
 
 def default_device_selection(

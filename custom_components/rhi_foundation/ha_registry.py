@@ -37,4 +37,20 @@ def device_evidence(device: Any | None) -> dict[str, Any]:
         "device_name": getattr(device, "name_by_user", None) or getattr(device, "name", None),
         "device_manufacturer": getattr(device, "manufacturer", None),
         "device_model": getattr(device, "model", None),
+        "device_identifiers": sorted(
+            [
+                [str(domain), str(value)]
+                for domain, value in (getattr(device, "identifiers", None) or set())
+                if domain is not None and value is not None
+            ],
+            key=lambda item: (item[0], item[1]),
+        ),
+        "device_connections": sorted(
+            [
+                [str(kind), str(value)]
+                for kind, value in (getattr(device, "connections", None) or set())
+                if kind is not None and value is not None
+            ],
+            key=lambda item: (item[0], item[1]),
+        ),
     }

@@ -28,6 +28,7 @@ from .wizard_state import (
     concept_target_id,
     default_device_selection,
     default_integration_selection,
+    framework_resources_available,
     mapped_integrations,
     mapping_key,
     mappings_for_concept,
@@ -54,6 +55,15 @@ def _specifications(hass: Any) -> list[dict[str, Any]]:
     _records, specs = read_publications(hass)
     return specs
 
+
+def _framework_source_available(hass: Any, integration: str, spec: dict[str, Any]) -> bool | None:
+    """Return resource-scoped availability for a registered framework provider."""
+    provider = get_framework_resource_provider(hass, integration)
+    if provider is None:
+        return None
+    getter = getattr(provider, "get_framework_resources", None)
+    resources = getter() if callable(getter) else []
+    return framework_resources_available(resources or [], integration, spec)
 
 def _integration_label(integration: str) -> str:
     return integration.replace("_", " ").title()
@@ -105,7 +115,8 @@ def _domain_records(
             if not integration:
                 continue
             row["published_integrations"].add(integration)
-            if integration in installed:
+            framework_available = _framework_source_available(hass, integration, spec)
+            if integration in installed and framework_available is not False:
                 row["builders"][integration] = {
                     "builder_id": str(spec["builder_id"]),
                     "builder_version": str(spec["builder_version"]),
@@ -414,7 +425,11 @@ class FoundationWizardMixin:
         mappings = mappings_for_concept(self._concept_mappings, concept["domain"], concept["concept"])
         self._concept_device_queue = []
         for integration in sorted(mappings):
-            builder = concept.get("builders", {}).get(integration) or {}
+            builder = concept.get("builders", {}).get(integration)
+            # Preserve stale/unavailable configured intent, but never refine it against
+            # unrelated resources while its published provider scope is unavailable.
+            if not builder:
+                continue
             specification = builder.get("specification") or {}
             resource_types = {
                 str(source.get("resource_type") or "")
