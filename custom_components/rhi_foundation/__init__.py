@@ -17,6 +17,7 @@ from .const import (
     CONF_TECHNICAL_SELECTIONS,
     DOMAIN,
     DOMAIN_BUILD_SPECIFICATIONS_CHANGED_EVENT,
+    FRAMEWORK_RESOURCE_PROVIDERS_CHANGED_EVENT,
     DOMAIN_SUPERVISORY_STATUS_CHANGED_EVENT,
     FOUNDATION_DISPATCH_SIGNAL,
     FOUNDATION_REFRESH_SERVICE,
@@ -186,6 +187,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _on_publication_changed,
     )
     entry.async_on_unload(unsub_publication)
+    unsub_framework = hass.bus.async_listen(
+        FRAMEWORK_RESOURCE_PROVIDERS_CHANGED_EVENT,
+        lambda event: _request_structural_refresh(
+            f"framework_provider:{event.data.get('reason', 'changed')}:"
+            f"{event.data.get('integration_domain', 'unknown')}"
+        ),
+    )
+    entry.async_on_unload(unsub_framework)
     unsub_supervision = hass.bus.async_listen(
         DOMAIN_SUPERVISORY_STATUS_CHANGED_EVENT,
         _on_supervision_changed,

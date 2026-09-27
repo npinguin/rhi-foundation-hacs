@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, TypeAlias
+from typing import Any, Literal, TypeAlias
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +61,20 @@ class IntegrationApiSourceIdentity:
 
 
 @dataclass(frozen=True, slots=True)
+class FrameworkResourceSourceIdentity:
+    """Stable resource/capability identity exposed by a Home Assistant framework."""
+    source_kind: Literal["framework_resource"]
+    integration_domain: str
+    framework_domain: str
+    resource_type: str
+    resource_id: str
+    capability_key: str
+    current_entity_id: str | None = None
+    static_value: Any | None = None
+    target_scope: Literal["resource"] = "resource"
+
+
+@dataclass(frozen=True, slots=True)
 class ConfiguredProductCapabilitySourceIdentity:
     source_kind: Literal["configured_product_capability"]
     configuration_owner: Literal["rhi_foundation"]
@@ -76,5 +90,6 @@ SourceIdentity: TypeAlias = (
     | DeviceActionSourceIdentity
     | ConfigEntryProviderSourceIdentity
     | IntegrationApiSourceIdentity
+    | FrameworkResourceSourceIdentity
     | ConfiguredProductCapabilitySourceIdentity
 )

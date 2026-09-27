@@ -3,8 +3,8 @@ from __future__ import annotations
 
 DOMAIN = "rhi_foundation"
 MODULE_DISPLAY_NAME = "Robotix Home Intelligence - Foundation Module"
-RELEASE = "F1.8.22"
-RELEASE_NAME = "IDEMPOTENT_HANDOFF"
+RELEASE = "F1.8.23"
+RELEASE_NAME = "HA_FRAMEWORK_PROVIDERS"
 SHARED_BASELINE_ID = "RHI_SHARED_ARCHITECTURE_BASELINE"
 SHARED_BASELINE_VERSION = "1.8.1"
 EXECUTION_MODEL = "configuration_time_active_runtime_passive"
@@ -23,6 +23,8 @@ DEFAULT_DEVELOPER_MODE = False
 
 DOMAIN_BUILD_SPECIFICATION_REGISTRY = "rhi_domain_build_specification_registry"
 DOMAIN_BUILD_SPECIFICATIONS_CHANGED_EVENT = "rhi_domain_build_specifications_changed"
+FRAMEWORK_RESOURCE_PROVIDER_REGISTRY = "rhi_framework_resource_provider_registry"
+FRAMEWORK_RESOURCE_PROVIDERS_CHANGED_EVENT = "rhi_framework_resource_providers_changed"
 SELECTED_DOMAIN_BUILD_INPUT_REGISTRY = "rhi_selected_domain_build_input_registry"
 SELECTED_DOMAIN_BUILD_INPUTS_CHANGED_EVENT = "rhi_selected_domain_build_inputs_changed"
 DOMAIN_SUPERVISORY_STATUS_REGISTRY = "rhi_domain_supervisory_status_registry"
@@ -46,6 +48,7 @@ SOURCE_KINDS = (
     "device_action",
     "config_entry_provider",
     "integration_api",
+    "framework_resource",
     "configured_product_capability",
 )
 

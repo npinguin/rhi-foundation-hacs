@@ -23,6 +23,7 @@ from .const import (
 )
 from .ha_registry import device_belongs_to_config_entry
 from .publications import read_publications
+from .shared_registry import get_framework_resource_provider, iter_framework_resource_providers
 from .wizard_state import (
     concept_target_id,
     default_device_selection,
@@ -43,7 +44,10 @@ def _installed_entries(hass: Any) -> list[Any]:
 
 
 def _installed_integrations(hass: Any) -> set[str]:
-    return {str(entry.domain) for entry in _installed_entries(hass)}
+    """Return config-entry integrations plus registered HA framework providers."""
+    installed = {str(entry.domain) for entry in _installed_entries(hass)}
+    installed.update(str(domain) for domain, _provider in iter_framework_resource_providers(hass))
+    return installed
 
 
 def _specifications(hass: Any) -> list[dict[str, Any]]:
@@ -157,8 +161,8 @@ def _domain_records(
     ]
 
 
-def _candidate_devices(hass: Any, integration: str) -> dict[str, str]:
-    """Return integration-owned HA devices for explicit user selection.
+def _candidate_devices(hass: Any, integration: str, resource_types: set[str] | None = None) -> dict[str, str]:
+    """Return integration devices or framework resources for explicit selection.
 
     The device chooser is intentionally *not* pre-filtered by domain raw
     matching rules.  Device choice defines the technical scope first;
@@ -168,6 +172,19 @@ def _candidate_devices(hass: Any, integration: str) -> dict[str, str]:
     match has yet been found.
 
     """
+    framework_provider = get_framework_resource_provider(hass, integration)
+    if framework_provider is not None:
+        getter = getattr(framework_provider, "get_framework_resources", None)
+        resources = getter() if callable(getter) else []
+        options = {
+            str(item.get("resource_id")): str(item.get("display_name") or item.get("resource_id"))
+            for item in (resources or [])
+            if isinstance(item, dict)
+            and item.get("resource_id")
+            and (not resource_types or str(item.get("resource_type") or "") in resource_types)
+        }
+        return dict(sorted(options.items(), key=lambda item: item[1].lower()))
+
     registry = dr.async_get(hass)
     config_entry_ids = {
         entry.entry_id for entry in _installed_entries(hass) if entry.domain == integration
@@ -394,14 +411,23 @@ class FoundationWizardMixin:
     def _prepare_concept_device_queue(self) -> None:
         concept = self._current_concept()
         mappings = mappings_for_concept(self._concept_mappings, concept["domain"], concept["concept"])
-        self._concept_device_queue = [
-            {
+        self._concept_device_queue = []
+        for integration in sorted(mappings):
+            builder = concept.get("builders", {}).get(integration) or {}
+            specification = builder.get("specification") or {}
+            resource_types = {
+                str(source.get("resource_type") or "")
+                for source in (specification.get("supported_sources") or [])
+                if isinstance(source, dict)
+                and str(source.get("integration_domain") or "") == integration
+                and source.get("resource_type")
+            }
+            self._concept_device_queue.append({
                 "target_id": concept_target_id(concept["domain"], concept["concept"], integration),
                 "integration_domain": integration,
                 "title": f"{concept['label']} — {_integration_label(integration)}",
-            }
-            for integration in sorted(mappings)
-        ]
+                "framework_resource_types": sorted(resource_types),
+            })
         self._concept_device_index = 0
 
     async def async_step_concept_devices(self, user_input=None):
@@ -412,7 +438,8 @@ class FoundationWizardMixin:
         target = self._concept_device_queue[self._concept_device_index]
         target_id = target["target_id"]
         integration = target["integration_domain"]
-        devices = _candidate_devices(self.hass, integration)
+        resource_types = set(target.get("framework_resource_types") or [])
+        devices = _candidate_devices(self.hass, integration, resource_types)
 
         # Some HA integrations expose useful entities without separate DeviceEntry
         # objects. In that case there is nothing meaningful to refine at device
@@ -462,13 +489,20 @@ class FoundationWizardMixin:
 
         existing = self._device_selections.get(target_id, {})
         default_mode, default_devices = default_device_selection(set(devices), existing)
+        is_framework = get_framework_resource_provider(self.hass, integration) is not None
+        choice_labels = (
+            {
+                FILTER_ALL: "All matching framework resources — review required",
+                FILTER_SPECIFIC: "Specific framework resources",
+            }
+            if is_framework
+            else {
+                FILTER_ALL: "All matching devices — review required",
+                FILTER_SPECIFIC: "Specific devices",
+            }
+        )
         schema: dict[Any, Any] = {
-            vol.Required("device_filter_mode", default=default_mode): vol.In(
-                {
-                    FILTER_ALL: "All matching devices — review required",
-                    FILTER_SPECIFIC: "Specific devices",
-                }
-            )
+            vol.Required("device_filter_mode", default=default_mode): vol.In(choice_labels)
         }
         if devices:
             schema[vol.Optional("selected_devices", default=default_devices)] = cv.multi_select(devices)
@@ -498,13 +532,17 @@ class FoundationWizardMixin:
         for integration in sorted(mappings):
             target_id = concept_target_id(concept["domain"], concept["concept"], integration)
             selection = self._device_selections.get(target_id, {})
+            is_framework = get_framework_resource_provider(self.hass, integration) is not None
             if selection.get("device_filter_mode") == FILTER_SPECIFIC:
                 count = len(selection.get("selected_device_ids", []))
-                lines.append(f"- {_integration_label(integration)}: {count} selected device(s)")
+                noun = "framework resource(s)" if is_framework else "device(s)"
+                lines.append(f"- {_integration_label(integration)}: {count} selected {noun}")
             elif selection.get("selection_origin") == "integration_scope_no_devices":
-                lines.append(f"- {_integration_label(integration)}: integration scope (no separate HA devices)")
+                detail = "framework scope (no matching resources)" if is_framework else "integration scope (no separate HA devices)"
+                lines.append(f"- {_integration_label(integration)}: {detail}")
             else:
-                lines.append(f"- {_integration_label(integration)}: all matching devices")
+                detail = "all matching framework resources" if is_framework else "all matching devices"
+                lines.append(f"- {_integration_label(integration)}: {detail}")
                 if selection.get("selection_state") == "review_required":
                     review_required.append(_integration_label(integration))
         if not lines:
@@ -634,10 +672,14 @@ class FoundationWizardMixin:
         if default_mode not in {FILTER_ALL, FILTER_SPECIFIC}:
             default_mode = FILTER_SPECIFIC if devices else FILTER_ALL
         default_devices = [item for item in existing.get("selected_device_ids", []) if item in devices]
+        is_framework = get_framework_resource_provider(self.hass, integration) is not None
+        labels = (
+            {FILTER_ALL: "All matching framework resources — review required", FILTER_SPECIFIC: "Specific framework resources"}
+            if is_framework
+            else {FILTER_ALL: "All matching devices — review required", FILTER_SPECIFIC: "Specific devices"}
+        )
         schema: dict[Any, Any] = {
-            vol.Required("device_filter_mode", default=default_mode): vol.In(
-                {FILTER_ALL: "All matching devices — review required", FILTER_SPECIFIC: "Specific devices"}
-            )
+            vol.Required("device_filter_mode", default=default_mode): vol.In(labels)
         }
         if devices:
             schema[vol.Optional("selected_devices", default=default_devices)] = cv.multi_select(devices)

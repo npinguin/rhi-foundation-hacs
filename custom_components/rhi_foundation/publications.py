@@ -76,6 +76,7 @@ def _validate_predicates(
         "source_identity.unique_id", "source_identity.service_domain", "source_identity.service_name",
         "source_identity.action_domain", "source_identity.action_type", "source_identity.action_subtype",
         "source_identity.provider_key", "source_identity.api_capability_id", "source_identity.capability_key",
+        "source_identity.framework_domain", "source_identity.resource_type", "source_identity.resource_id",
         "technical_capability.device_class", "technical_capability.state_class", "technical_capability.native_unit",
     }
     for condition in predicates:

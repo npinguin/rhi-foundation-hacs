@@ -13,6 +13,7 @@ _ALLOWED_FIELDS = {
     "source_identity.unique_id", "source_identity.service_domain", "source_identity.service_name",
     "source_identity.action_domain", "source_identity.action_type", "source_identity.action_subtype",
     "source_identity.provider_key", "source_identity.api_capability_id", "source_identity.capability_key",
+    "source_identity.framework_domain", "source_identity.resource_type", "source_identity.resource_id",
     "technical_capability.device_class", "technical_capability.state_class", "technical_capability.native_unit",
 }
 _ALLOWED_OPERATORS = {"equals", "starts_with", "ends_with", "contains"}
@@ -68,11 +69,12 @@ def candidate_matches_requirement(candidate: dict[str, Any], requirement: dict[s
     if source.get("source_kind") not in allowed_source_kinds: return False, []
     if candidate.get("technical_capability", {}).get("capability_class") not in capabilities: return False, []
     if selected_device_ids is not None:
-        device_id = source.get("device_registry_id"); config_entry_id = source.get("config_entry_id")
-        direct_match = device_id is not None and device_id in selected_device_ids
+        device_id = source.get("device_registry_id"); config_entry_id = source.get("config_entry_id"); resource_id = source.get("resource_id")
+        direct_match = (device_id is not None and device_id in selected_device_ids) or (resource_id is not None and resource_id in selected_device_ids)
         config_entry_match = selected_config_entry_ids is not None and config_entry_id is not None and config_entry_id in selected_config_entry_ids
         if device_id is not None and not direct_match and not config_entry_match: return False, []
-        if device_id is None and selected_config_entry_ids is not None and not config_entry_match: return False, []
+        if resource_id is not None and not direct_match: return False, []
+        if device_id is None and resource_id is None and selected_config_entry_ids is not None and not config_entry_match: return False, []
     rules = requirement.get("integration_matches") or []
     if rules:
         matched = published_matches_for_candidate(candidate, requirement, integration_domain=integration_domain)

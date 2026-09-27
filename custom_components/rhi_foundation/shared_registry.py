@@ -11,6 +11,8 @@ from typing import Any, Callable, Iterator
 from .const import (
     DOMAIN_BUILD_SPECIFICATION_REGISTRY,
     DOMAIN_BUILD_SPECIFICATIONS_CHANGED_EVENT,
+    FRAMEWORK_RESOURCE_PROVIDER_REGISTRY,
+    FRAMEWORK_RESOURCE_PROVIDERS_CHANGED_EVENT,
     DOMAIN_SUPERVISORY_STATUS_CHANGED_EVENT,
     DOMAIN_SUPERVISORY_STATUS_REGISTRY,
 )
@@ -271,3 +273,71 @@ async def async_remove_domain_configuration(
         domain_id=domain_id,
         publisher_domain=publisher_domain,
     )
+
+
+def register_framework_resource_provider(
+    hass: Any,
+    *,
+    integration_domain: str,
+    provider: Any,
+) -> Unsubscribe:
+    """Register one bounded Home Assistant framework resource provider.
+
+    Framework providers expose technical resources/capabilities only. Foundation
+    owns selection mechanics; the publishing RHI domain remains the semantic owner.
+    """
+    registry = hass.data.setdefault(FRAMEWORK_RESOURCE_PROVIDER_REGISTRY, {})
+    previous = registry.get(integration_domain)
+    token = object()
+    registry[integration_domain] = {
+        "integration_domain": integration_domain,
+        "provider": provider,
+        "registration_token": token,
+    }
+    hass.bus.async_fire(
+        FRAMEWORK_RESOURCE_PROVIDERS_CHANGED_EVENT,
+        {"integration_domain": integration_domain, "reason": "provider_updated" if previous else "provider_registered"},
+    )
+
+    def _unsubscribe() -> None:
+        current = registry.get(integration_domain)
+        if not isinstance(current, dict) or current.get("registration_token") is not token:
+            return
+        registry.pop(integration_domain, None)
+        hass.bus.async_fire(
+            FRAMEWORK_RESOURCE_PROVIDERS_CHANGED_EVENT,
+            {"integration_domain": integration_domain, "reason": "provider_unregistered"},
+        )
+
+    return _unsubscribe
+
+
+def notify_framework_resource_provider_changed(
+    hass: Any, *, integration_domain: str, reason: str = "resources_changed"
+) -> None:
+    """Publish one bounded structural-change signal for a registered framework provider."""
+    registry = hass.data.get(FRAMEWORK_RESOURCE_PROVIDER_REGISTRY, {}) or {}
+    if integration_domain not in registry:
+        return
+    hass.bus.async_fire(
+        FRAMEWORK_RESOURCE_PROVIDERS_CHANGED_EVENT,
+        {"integration_domain": integration_domain, "reason": reason},
+    )
+
+
+def iter_framework_resource_providers(hass: Any) -> Iterator[tuple[str, Any]]:
+    """Iterate registered framework resource providers without exposing mutation."""
+    registry = hass.data.get(FRAMEWORK_RESOURCE_PROVIDER_REGISTRY, {}) or {}
+    for key in sorted(registry):
+        entry = registry[key]
+        provider = entry.get("provider") if isinstance(entry, dict) else entry
+        if provider is not None:
+            yield str(key), provider
+
+
+def get_framework_resource_provider(hass: Any, integration_domain: str) -> Any | None:
+    registry = hass.data.get(FRAMEWORK_RESOURCE_PROVIDER_REGISTRY, {}) or {}
+    entry = registry.get(integration_domain)
+    if isinstance(entry, dict):
+        return entry.get("provider")
+    return entry

@@ -15,6 +15,7 @@ from .const import (
     SELECTED_DOMAIN_BUILD_INPUTS_CHANGED_EVENT, SAFETY,
 )
 from .publications import publication_summary, read_publications
+from .shared_registry import iter_framework_resource_providers
 from .health import derive_success_health
 from .handoff import replace_entry_slice, structural_slice_changed
 from .concept_trace import build_concept_trace
@@ -29,15 +30,20 @@ def _config(entry: Any) -> dict[str, Any]:
 
 def _integration_inventory(hass: Any, selected: list[str], specs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     published = {str(item["integration_domain"]) for spec in specs for item in spec.get("supported_sources", [])}
-    counts: dict[str, int] = {}
+    rows: dict[str, dict[str, Any]] = {}
     for entry in hass.config_entries.async_entries():
-        counts[entry.domain] = counts.get(entry.domain, 0) + 1
+        row = rows.setdefault(entry.domain, {"config_entry_count": 0, "framework_provider": False})
+        row["config_entry_count"] += 1
+    for domain, _provider in iter_framework_resource_providers(hass):
+        row = rows.setdefault(domain, {"config_entry_count": 0, "framework_provider": False})
+        row["framework_provider"] = True
     return [{
         "integration_domain": domain,
-        "config_entry_count": count,
+        "config_entry_count": int(row["config_entry_count"]),
+        "framework_provider": bool(row["framework_provider"]),
         "selected": domain in selected,
         "domain_supported": domain in published,
-    } for domain, count in sorted(counts.items())]
+    } for domain, row in sorted(rows.items())]
 
 
 def _device_config_entry_map(

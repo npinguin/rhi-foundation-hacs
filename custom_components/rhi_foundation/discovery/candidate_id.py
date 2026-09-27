@@ -12,6 +12,7 @@ def _stable_source_payload(source: SourceIdentity) -> dict[str, object]:
     data = asdict(source)
     # current_entity_id is mutable runtime/display resolution and never part of identity.
     data.pop("current_entity_id", None)
+    data.pop("static_value", None)
     return data
 
 

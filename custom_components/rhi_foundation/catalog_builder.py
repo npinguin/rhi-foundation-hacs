@@ -12,7 +12,13 @@ from .discovery.candidate_id import build_candidate_id
 from .ha_registry import device_evidence
 from .models.capability import CapabilityEvidence, CapabilityQuality, FoundationCapabilityCandidate, TechnicalCapability
 from .models.catalog import FoundationCapabilityCatalog
-from .models.source_identity import ConfigEntryProviderSourceIdentity, EntitySourceIdentity, ServiceSourceIdentity
+from .models.source_identity import (
+    ConfigEntryProviderSourceIdentity,
+    EntitySourceIdentity,
+    FrameworkResourceSourceIdentity,
+    ServiceSourceIdentity,
+)
+from .shared_registry import iter_framework_resource_providers
 
 
 def _availability(hass: Any, entity_id: str) -> str:
@@ -113,6 +119,57 @@ def build_catalog(hass: Any, *, revision: int, selected_integrations: list[str] 
                     config_entry_id=str(entry.entry_id), target_scope="config_entry",
                 )
                 candidates.append(_candidate(source,"service_command_surface",value_type="service",writable=True,provenance=("service_registry","config_entry_scope")))
+
+    # Home Assistant framework resources are published by RHI domains through a
+    # bounded provider contract. Foundation treats them exactly as technical sources:
+    # it does not interpret resource_type/capability_key semantically.
+    for integration_domain, provider in iter_framework_resource_providers(hass):
+        if selected is not None and integration_domain not in selected:
+            continue
+        getter = getattr(provider, "get_framework_resources", None)
+        if not callable(getter):
+            continue
+        resources = getter()
+        if not isinstance(resources, (list, tuple)):
+            continue
+        framework_domain = str(getattr(provider, "framework_domain", "") or "")
+        for resource in resources:
+            if not isinstance(resource, dict):
+                continue
+            resource_id = str(resource.get("resource_id") or "")
+            resource_type = str(resource.get("resource_type") or "")
+            if not resource_id or not resource_type:
+                continue
+            display_name = str(resource.get("display_name") or resource_id)
+            for capability in resource.get("capabilities") or []:
+                if not isinstance(capability, dict):
+                    continue
+                capability_key = str(capability.get("capability_key") or "")
+                capability_class = str(capability.get("capability_class") or "")
+                if not capability_key or not capability_class:
+                    continue
+                source = FrameworkResourceSourceIdentity(
+                    source_kind="framework_resource",
+                    integration_domain=integration_domain,
+                    framework_domain=framework_domain,
+                    resource_type=resource_type,
+                    resource_id=resource_id,
+                    capability_key=capability_key,
+                    current_entity_id=(str(capability.get("current_entity_id")) if capability.get("current_entity_id") else None),
+                    static_value=capability.get("static_value"),
+                )
+                candidates.append(_candidate(
+                    source,
+                    capability_class,
+                    value_type=str(capability.get("value_type") or "number"),
+                    writable=bool(capability.get("writable", False)),
+                    device_class=capability.get("device_class"),
+                    state_class=capability.get("state_class"),
+                    unit=capability.get("native_unit"),
+                    provenance=("home_assistant_framework", framework_domain or integration_domain),
+                    availability=str(capability.get("availability") or "available"),
+                    device_evidence={"device_name": display_name},
+                ))
 
     candidates.sort(key=lambda c:c.candidate_id)
     catalog=FoundationCapabilityCatalog(
