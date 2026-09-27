@@ -15,7 +15,7 @@ from .const import (
     SELECTED_DOMAIN_BUILD_INPUTS_CHANGED_EVENT, SAFETY,
 )
 from .publications import publication_summary, read_publications
-from .shared_registry import iter_framework_resource_providers
+from .shared_registry import async_refresh_framework_resource_providers, iter_framework_resource_providers
 from .health import derive_success_health
 from .handoff import replace_entry_slice, structural_slice_changed
 from .concept_trace import build_concept_trace
@@ -160,6 +160,7 @@ async def async_refresh_snapshot(hass: Any, entry: Any, *, reason: str) -> bool:
     lock = data.setdefault("refresh_lock", asyncio.Lock())
     async with lock:
         try:
+            await async_refresh_framework_resource_providers(hass)
             candidate = build_snapshot(hass, entry, refresh_reason=reason)
             registry = hass.data.get(SELECTED_DOMAIN_BUILD_INPUT_REGISTRY, {}) or {}
             persisted_generation = max(

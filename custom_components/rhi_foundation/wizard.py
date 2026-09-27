@@ -23,7 +23,7 @@ from .const import (
 )
 from .ha_registry import device_belongs_to_config_entry
 from .publications import read_publications
-from .shared_registry import get_framework_resource_provider, iter_framework_resource_providers
+from .shared_registry import async_refresh_framework_resource_providers, get_framework_resource_provider, iter_framework_resource_providers
 from .wizard_state import (
     concept_target_id,
     default_device_selection,
@@ -253,6 +253,7 @@ class FoundationWizardMixin:
         """Step 1 — normal or developer diagnostics mode."""
         if user_input is not None:
             self._developer_mode = bool(user_input[CONF_DEVELOPER_MODE])
+            await async_refresh_framework_resource_providers(self.hass)
             self._domain_queue = _domain_records(self.hass, self._concept_mappings)
             self._domain_index = 0
             return await self.async_step_domain_intro()

@@ -2,11 +2,12 @@
 
 The registry owns mechanics, validation and the canonical visual_ref key space.
 Domains own which visual_ref is assigned to their semantic assets.
-UX packages own local image files and rendering.
+Producer domains own visual assignment and may register a package-local presentation
+locator for generic UX reuse. Foundation validates and publishes that locator without
+owning domain semantics or absolute URLs.
 
-No file paths or URLs are published here. Consumers resolve visual_ref against
-their own packaged visual catalog so no UX package becomes a runtime dependency
-of another.
+Cross-domain consumers resolve visual_ref through this registry. They must not recreate
+producer-specific model/image mappings.
 """
 from __future__ import annotations
 
@@ -23,6 +24,7 @@ from .const import (
 Unsubscribe = Callable[[], None]
 _MAX_VISUAL_ASSETS_PER_PROVIDER = 256
 _ALLOWED_VARIANTS = {"thumbnail", "card", "hero", "detail"}
+_ALLOWED_PACKAGE_ID_CHARS = set("abcdefghijklmnopqrstuvwxyz0123456789_-")
 
 
 def _materialize(provider: Any) -> list[dict[str, Any]]:
@@ -61,6 +63,19 @@ def _valid_visual_ref(value: Any) -> bool:
     )
 
 
+def _valid_package_id(value: Any) -> bool:
+    package_id = str(value or "").strip()
+    return bool(package_id) and len(package_id) <= 80 and all(ch in _ALLOWED_PACKAGE_ID_CHARS for ch in package_id)
+
+
+def _valid_package_path(value: Any) -> bool:
+    path = str(value or "").strip()
+    if not path or len(path) > 240 or path.startswith("/") or "://" in path:
+        return False
+    parts = path.split("/")
+    return all(part not in {"", ".", ".."} for part in parts)
+
+
 def validate_visual_asset_entry(
     entry: dict[str, Any],
     *,
@@ -91,7 +106,30 @@ def validate_visual_asset_entry(
         if any(value not in _ALLOWED_VARIANTS for value in clean_variants):
             issues.append("invalid:variant_key")
 
-    # The central registry deliberately never publishes package paths or URLs.
+    presentation = entry.get("presentation")
+    if presentation is not None:
+        if not isinstance(presentation, dict):
+            issues.append("invalid:presentation")
+        else:
+            package_id = presentation.get("package_id")
+            variants_map = presentation.get("variants", {})
+            if not _valid_package_id(package_id):
+                issues.append("invalid:presentation_package_id")
+            if not isinstance(variants_map, dict) or not variants_map:
+                issues.append("invalid:presentation_variants")
+            else:
+                for variant, package_path in variants_map.items():
+                    if str(variant) not in _ALLOWED_VARIANTS:
+                        issues.append("invalid:presentation_variant")
+                    if not _valid_package_path(package_path):
+                        issues.append("invalid:presentation_package_path")
+                declared = {str(v) for v in variants}
+                published = {str(v) for v in variants_map}
+                if not published.issubset(declared):
+                    issues.append("invalid:presentation_variant_not_declared")
+
+    # Absolute URLs and ambiguous legacy path fields remain forbidden. Only the
+    # validated presentation.package_id + relative presentation.variants locator is public.
     for forbidden in ("path", "url", "image_url", "asset_path", "filename", "file"):
         if forbidden in entry:
             issues.append(f"forbidden:{forbidden}")
@@ -234,6 +272,7 @@ def visual_asset_registry_snapshot(hass: Any) -> dict[str, Any]:
                         "owner_domain": publisher,
                         "revision": int(raw["revision"]),
                         "variant_keys": sorted({str(value) for value in raw.get("variant_keys", [])}),
+                        "presentation": deepcopy(raw.get("presentation")) if isinstance(raw.get("presentation"), dict) else None,
                     }
                 )
         except Exception as exc:
@@ -253,14 +292,15 @@ def visual_asset_registry_snapshot(hass: Any) -> dict[str, Any]:
     providers.sort(key=lambda row: row["publisher_domain"])
     return {
         "contract_id": VISUAL_ASSET_REGISTRY_CONTRACT,
-        "contract_version": "1.0.0",
+        "contract_version": "1.1.0",
         "ownership": {
             "registry": "rhi_foundation",
             "assignment": "owning_domain",
-            "packaged_asset": "consuming_ux",
+            "presentation_registration": "owning_domain",
             "rendering": "consuming_ux",
         },
-        "path_or_url_publication": False,
+        "absolute_url_publication": False,
+        "package_relative_presentation_locator": True,
         "entries": deepcopy(entries),
         "providers": deepcopy(providers),
         "entry_count": len(entries),

@@ -341,3 +341,18 @@ def get_framework_resource_provider(hass: Any, integration_domain: str) -> Any |
     if isinstance(entry, dict):
         return entry.get("provider")
     return entry
+
+
+async def async_refresh_framework_resource_providers(hass: Any) -> None:
+    """Refresh bounded framework-provider configuration snapshots before discovery.
+
+    Providers may expose an async refresh hook when their Home Assistant framework
+    has no shared manager or public configuration-change event. This hook is
+    structural/configuration-time only; telemetry must never enter this path.
+    """
+    for _integration_domain, provider in iter_framework_resource_providers(hass):
+        refresh = getattr(provider, "async_refresh_framework_resources", None)
+        if callable(refresh):
+            result = refresh()
+            if hasattr(result, "__await__"):
+                await result
