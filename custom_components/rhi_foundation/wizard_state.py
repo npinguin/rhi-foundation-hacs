@@ -100,6 +100,37 @@ def framework_resources_available(
         for resource in (resources or [])
     )
 
+
+def legacy_empty_framework_selection(
+    selection: dict[str, Any] | None,
+    resources: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+    integration: str,
+    specification: dict[str, Any],
+) -> bool:
+    """Return whether one old auto-created empty framework scope must be ignored.
+
+    This recognizes only the F1.8.25 artifact shape. Explicit user selections,
+    concrete resources and temporarily unavailable providers are outside this helper.
+    """
+    selection = selection or {}
+    if str(selection.get("selection_origin") or "") != "integration_scope_no_devices":
+        return False
+    if str(selection.get("device_filter_mode") or "") != "all_matching":
+        return False
+    selected = {str(value) for value in (selection.get("selected_device_ids") or [])}
+    if selected not in (set(), {"__all_matching__"}):
+        return False
+    is_framework_scope = any(
+        isinstance(source, dict)
+        and str(source.get("integration_domain") or "") == str(integration)
+        and str(source.get("source_kind") or "") == "framework_resource"
+        for source in (specification.get("supported_sources") or [])
+    )
+    # This legacy scope predates explicit framework-resource selection. Even if a
+    # matching resource appears later, activating it automatically would invent new
+    # user intent. Reconfiguration must create a fresh explicit selection.
+    return is_framework_scope
+
 def default_integration_selection(
     available_integrations: list[str],
     existing_integrations: set[str] | list[str],

@@ -10,7 +10,7 @@ from .classifier import classify_config_key, classify_entity
 from .contracts.serialization import catalog_to_contract
 from .discovery.candidate_id import build_candidate_id
 from .ha_registry import device_evidence
-from .models.capability import CapabilityEvidence, CapabilityQuality, FoundationCapabilityCandidate, TechnicalCapability
+from .models.capability import CapabilityQuality, FoundationCapabilityCandidate, TechnicalCapability, capability_evidence
 from .models.catalog import FoundationCapabilityCatalog
 from .models.source_identity import (
     ConfigEntryProviderSourceIdentity,
@@ -39,19 +39,9 @@ def _candidate(source: Any, capability_class: str, *, value_type: str, writable:
             state_class=None if state_class is None else str(state_class),
             native_unit=None if unit is None else str(unit),
         ),
-        evidence=CapabilityEvidence(
+        evidence=capability_evidence(
             provenance=provenance,
-            **{
-                **(device_evidence or {}),
-                "device_identifiers": tuple(
-                    tuple(str(value) for value in pair)
-                    for pair in ((device_evidence or {}).get("device_identifiers") or [])
-                ),
-                "device_connections": tuple(
-                    tuple(str(value) for value in pair)
-                    for pair in ((device_evidence or {}).get("device_connections") or [])
-                ),
-            },
+            device_evidence=device_evidence,
         ),
         quality=CapabilityQuality(technical_match_confidence="high", availability=availability, ambiguity="none"),
     )

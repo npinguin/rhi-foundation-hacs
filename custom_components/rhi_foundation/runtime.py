@@ -9,23 +9,24 @@ from homeassistant.helpers import device_registry as dr
 
 from .build_input import build_domain_inputs, rematerialize_concept_mapping_metadata
 from .catalog_builder import build_catalog
+from .domain_config import effective_entry_configuration
 from .const import (
     CONF_CONFIGURATION_REVISION, CONF_CONCEPT_MAPPINGS, CONF_DEVELOPER_MODE, CONF_DEVICE_SELECTIONS,
     CONF_SELECTED_INTEGRATIONS, CONF_TECHNICAL_SELECTIONS, DOMAIN, SELECTED_DOMAIN_BUILD_INPUT_REGISTRY,
     SELECTED_DOMAIN_BUILD_INPUTS_CHANGED_EVENT, SAFETY,
 )
 from .publications import publication_summary, read_publications
-from .shared_registry import async_refresh_framework_resource_providers, iter_framework_resource_providers
+from .shared_registry import async_refresh_framework_resource_providers, iter_framework_resource_providers, get_framework_resource_provider
 from .health import derive_success_health
 from .handoff import replace_entry_slice, structural_slice_changed
 from .concept_trace import build_concept_trace
 from .supervision import aggregate_system_supervision, read_domain_supervisory_statuses
+from .wizard_state import legacy_empty_framework_selection
 
 
 def _config(entry: Any) -> dict[str, Any]:
-    config = dict(entry.data)
-    config.update(dict(entry.options))
-    return config
+    """Read one Foundation entry through the canonical domain-safe merge boundary."""
+    return effective_entry_configuration(entry.data, entry.options)
 
 
 def _integration_inventory(hass: Any, selected: list[str], specs: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -63,6 +64,57 @@ def _device_config_entry_map(
     return out
 
 
+
+def _suppress_legacy_empty_framework_selections(
+    hass: Any,
+    concept_mappings: dict[str, dict[str, Any]],
+    device_selections: dict[str, dict[str, Any]],
+    specifications: list[dict[str, Any]],
+) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]], list[str]]:
+    """Ignore only legacy auto-created empty framework selections.
+
+    F1.8.25 could persist an all-matching integration scope even when a framework
+    provider exposed no resources for that concept. That state was never explicit
+    user intent. Suppression is fail-safe: it applies only when the provider is
+    currently registered, the selection carries the legacy origin marker, and the
+    current specification confirms this was a framework-resource scope that predates explicit resource selection.
+    """
+    specs_by_builder = {
+        str(spec.get("builder_id") or ""): spec
+        for spec in specifications
+        if isinstance(spec, dict)
+    }
+    mappings = dict(concept_mappings or {})
+    selections = dict(device_selections or {})
+    suppressed: list[str] = []
+    for mapping_key, mapping in list(mappings.items()):
+        if not isinstance(mapping, dict):
+            continue
+        target_id = f"domain:{mapping_key}"
+        selection = selections.get(target_id)
+        if not isinstance(selection, dict):
+            continue
+        if str(selection.get("selection_origin") or "") != "integration_scope_no_devices":
+            continue
+        if str(selection.get("device_filter_mode") or "") != "all_matching":
+            continue
+        integration = str(mapping.get("integration_domain") or "")
+        provider = get_framework_resource_provider(hass, integration)
+        if provider is None:
+            continue
+        spec = specs_by_builder.get(str(mapping.get("builder_id") or ""))
+        if spec is None:
+            continue
+        getter = getattr(provider, "get_framework_resources", None)
+        resources = getter() if callable(getter) else []
+        if not legacy_empty_framework_selection(selection, resources or [], integration, spec):
+            continue
+        mappings.pop(mapping_key, None)
+        selections.pop(target_id, None)
+        suppressed.append(mapping_key)
+    return mappings, selections, sorted(suppressed)
+
+
 def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, Any]:
     config = _config(entry)
     revision = max(1, int(config.get(CONF_CONFIGURATION_REVISION, 1)))
@@ -85,8 +137,17 @@ def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, A
         selected_integrations=relevant_integrations,
     )
     persisted_concept_mappings = dict(config.get(CONF_CONCEPT_MAPPINGS, {}) or {})
+    persisted_device_selections = dict(config.get(CONF_DEVICE_SELECTIONS, {}) or {})
+    persisted_concept_mappings, persisted_device_selections, legacy_suppressed = (
+        _suppress_legacy_empty_framework_selections(
+            hass,
+            persisted_concept_mappings,
+            persisted_device_selections,
+            specs,
+        )
+    )
     concept_mappings = rematerialize_concept_mapping_metadata(persisted_concept_mappings, specs)
-    device_selections = dict(config.get(CONF_DEVICE_SELECTIONS, {}) or {})
+    device_selections = persisted_device_selections
     selected_device_ids = {
         str(device_id)
         for selection in device_selections.values()
@@ -126,6 +187,7 @@ def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, A
         "concept_mappings": concept_mappings,
         "technical_selections": list(config.get(CONF_TECHNICAL_SELECTIONS, []) or []),
         "device_selections": device_selections,
+        "legacy_suppressed_selections": legacy_suppressed,
         "integration_inventory": _integration_inventory(hass, selected, specs),
         "publication_index": publication_summary(records),
         "domain_build_specifications": specs,

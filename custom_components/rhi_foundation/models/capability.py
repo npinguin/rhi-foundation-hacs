@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 from .source_identity import SourceIdentity
 
@@ -29,8 +29,24 @@ class CapabilityEvidence:
     device_model: str | None = None
     device_identifiers: tuple[tuple[str, str], ...] = ()
     device_connections: tuple[tuple[str, str], ...] = ()
-    device_identifiers: tuple[tuple[str, str], ...] = ()
-    device_connections: tuple[tuple[str, str], ...] = ()
+
+
+def capability_evidence(
+    *,
+    provenance: tuple[str, ...],
+    device_evidence: dict[str, Any] | None = None,
+) -> CapabilityEvidence:
+    """Construct bounded domain-neutral evidence from HA registry metadata."""
+    raw = dict(device_evidence or {})
+    raw["device_identifiers"] = tuple(
+        tuple(str(value) for value in pair)
+        for pair in (raw.get("device_identifiers") or [])
+    )
+    raw["device_connections"] = tuple(
+        tuple(str(value) for value in pair)
+        for pair in (raw.get("device_connections") or [])
+    )
+    return CapabilityEvidence(provenance=provenance, **raw)
 
 
 @dataclass(frozen=True, slots=True)
