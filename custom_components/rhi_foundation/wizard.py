@@ -382,11 +382,12 @@ class FoundationWizardMixin(ConfigurationSurfaceWizardMixin):
         ) or "No installed published sources"
         return self.async_show_menu(
             step_id="concept_source",
-            menu_options={
-                "concept_source_integrations": "Use integration / Home Assistant sources",
-                "concept_source_entities": "Configure directly from Home Assistant entities",
-                "concept_source_back": "Back",
-            },
+            menu_options=[
+                "concept_source_integrations",
+                "concept_source_entities",
+                "concept_source_skip",
+                "concept_source_back",
+            ],
             description_placeholders={
                 "concept": str(concept.get("label") or concept.get("concept") or ""),
                 "available_integrations": available,
@@ -423,6 +424,28 @@ class FoundationWizardMixin(ConfigurationSurfaceWizardMixin):
         self._recompute_selected_integrations()
         self._prepare_surface_queue()
         return await self.async_step_concept_surfaces()
+
+    async def async_step_concept_source_skip(self, user_input=None):
+        """Explicitly leave this optional concept unconfigured."""
+        concept = self._current_concept()
+        domain = str(concept["domain"])
+        concept_id = str(concept["concept"])
+        existing = mappings_for_concept(self._concept_mappings, domain, concept_id)
+        for integration in list(existing):
+            self._concept_mappings.pop(mapping_key(domain, concept_id, integration), None)
+            self._device_selections.pop(concept_target_id(domain, concept_id, integration), None)
+        self._configuration_surface_selections = {
+            key: value
+            for key, value in self._configuration_surface_selections.items()
+            if not (
+                isinstance(value, dict)
+                and str(value.get("domain") or "") == domain
+                and str(value.get("concept") or "") == concept_id
+            )
+        }
+        self._recompute_selected_integrations()
+        self._concept_index += 1
+        return await self.async_step_concept_intro()
 
     async def async_step_concept_source_back(self, user_input=None):
         """Return to the concept explanation without committing working state."""

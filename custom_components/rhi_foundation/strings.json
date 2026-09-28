@@ -75,7 +75,13 @@
       },
       "concept_source": {
         "title": "Choose source for {concept}",
-        "description": "Choose how Foundation should obtain this concept. Published installed sources: {available_integrations}. Direct entity mapping is an alternative source path; it does not depend on Home Assistant Energy."
+        "description": "Choose how {concept} should be configured. You can use an available integration/device, select Home Assistant entities directly, or leave this concept unconfigured.",
+        "menu_options": {
+          "concept_source_integrations": "Use an available integration or device",
+          "concept_source_entities": "Select Home Assistant entities directly",
+          "concept_source_skip": "Do not configure this concept",
+          "concept_source_back": "Back"
+        }
       },
       "concept_surfaces": {
         "title": "Configure {surface}",
@@ -83,7 +89,7 @@
       },
       "surface_fields": {
         "title": "Configure {surface}",
-        "description": "{domain} · {concept}\\nSelect the Home Assistant entities that provide the domain-published measurements. The domain defines the minimum valid combination; Foundation only filters technically compatible entities."
+        "description": "{domain} · {concept}\n\nSelect only the measurements you want to configure. Fields may be left empty unless they are needed to satisfy the minimum valid combination defined by the domain."
       },
       "surface_edit": {
         "title": "Choose logical device to edit",
@@ -106,7 +112,7 @@
       "confirm_all_matching": "Explicitly confirm the all-matching selection before continuing.",
       "invalid_domain": "Choose a valid published RHI domain.",
       "select_instance": "Choose a configured logical device.",
-      "minimum_not_satisfied": "Select the minimum required combination of entities for this logical device.",
+      "minimum_not_satisfied": "The selected measurements do not yet form a valid minimum configuration. Complete one of the required combinations, or go back and leave this concept unconfigured.",
       "entity_unavailable": "The selected entity is no longer available in the Foundation candidate catalog."
     }
   },
@@ -198,7 +204,13 @@
       },
       "concept_source": {
         "title": "Choose source for {concept}",
-        "description": "Choose how Foundation should obtain this concept. Published installed sources: {available_integrations}. Direct entity mapping is an alternative source path; it does not depend on Home Assistant Energy."
+        "description": "Choose how {concept} should be configured. You can use an available integration/device, select Home Assistant entities directly, or leave this concept unconfigured.",
+        "menu_options": {
+          "concept_source_integrations": "Use an available integration or device",
+          "concept_source_entities": "Select Home Assistant entities directly",
+          "concept_source_skip": "Do not configure this concept",
+          "concept_source_back": "Back"
+        }
       },
       "concept_surfaces": {
         "title": "Configure {surface}",
@@ -206,7 +218,7 @@
       },
       "surface_fields": {
         "title": "Configure {surface}",
-        "description": "{domain} · {concept}\\nSelect the Home Assistant entities that provide the domain-published measurements. The domain defines the minimum valid combination; Foundation only filters technically compatible entities."
+        "description": "{domain} · {concept}\n\nSelect only the measurements you want to configure. Fields may be left empty unless they are needed to satisfy the minimum valid combination defined by the domain."
       },
       "surface_edit": {
         "title": "Choose logical device to edit",
@@ -231,7 +243,7 @@
       "domain_not_configured": "This domain has no Foundation configuration to remove.",
       "foundation_settings_cannot_be_removed": "Foundation technical settings can be changed but not removed as a domain.",
       "select_instance": "Choose a configured logical device.",
-      "minimum_not_satisfied": "Select the minimum required combination of entities for this logical device.",
+      "minimum_not_satisfied": "The selected measurements do not yet form a valid minimum configuration. Complete one of the required combinations, or go back and leave this concept unconfigured.",
       "entity_unavailable": "The selected entity is no longer available in the Foundation candidate catalog."
     }
   }

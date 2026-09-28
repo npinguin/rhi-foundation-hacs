@@ -264,11 +264,17 @@ class ConfigurationSurfaceWizardMixin:
                 .get("source_identity", {})
                 .get("current_entity_id")
             )
+            # Fail closed.  ``include_entities=None`` means unrestricted in HA,
+            # so an empty compatible set must never be converted to None.
+            # Omit a field with no compatible candidates from the form; minimum
+            # validation will still reject the form when that field is required.
+            if not compatible:
+                continue
             config = selector.EntitySelectorConfig(
-                include_entities=compatible or None,
+                include_entities=compatible,
                 multiple=False,
             )
-            marker = vol.Optional(field_id, default=previous) if previous else vol.Optional(field_id)
+            marker = vol.Optional(field_id, default=previous) if previous in compatible else vol.Optional(field_id)
             schema[marker] = selector.EntitySelector(config)
 
         return vol.Schema(schema)
