@@ -74,7 +74,7 @@
         "data": {}
       },
       "concept_source": {
-        "title": "Choose source for {concept}",
+        "title": "Choose source",
         "description": "Choose how {concept} should be configured. You can use an available integration/device, select Home Assistant entities directly, or leave this concept unconfigured.",
         "menu_options": {
           "concept_source_integrations": "Use an available integration or device",
@@ -203,7 +203,7 @@
         "data": {}
       },
       "concept_source": {
-        "title": "Choose source for {concept}",
+        "title": "Choose source",
         "description": "Choose how {concept} should be configured. You can use an available integration/device, select Home Assistant entities directly, or leave this concept unconfigured.",
         "menu_options": {
           "concept_source_integrations": "Use an available integration or device",
