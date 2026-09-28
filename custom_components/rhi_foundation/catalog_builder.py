@@ -78,10 +78,13 @@ def build_catalog(hass: Any, *, revision: int, selected_integrations: list[str] 
         entry=entry_by_id.get(entry_id)
         if entry is None: continue
         if selected is not None and entry.domain not in selected: continue
-        entity_domain=str(entity.entity_id).split(".",1)[0]
-        dc=getattr(entity,"device_class",None)
-        sc=getattr(entity,"state_class",None)
-        unit=getattr(entity,"unit_of_measurement",None)
+        entity_id = str(entity.entity_id)
+        entity_domain=entity_id.split(".",1)[0]
+        state = hass.states.get(entity_id)
+        attributes = state.attributes if state is not None else {}
+        dc=attributes.get("device_class") or getattr(entity,"device_class",None)
+        sc=attributes.get("state_class") or getattr(entity,"state_class",None)
+        unit=attributes.get("unit_of_measurement") or getattr(entity,"unit_of_measurement",None)
         source=EntitySourceIdentity(
             source_kind="entity", integration_domain=str(entry.domain), config_entry_id=str(entry.entry_id),
             entity_registry_id=str(entity.id), unique_id=str(getattr(entity,"unique_id",None) or entity.id),

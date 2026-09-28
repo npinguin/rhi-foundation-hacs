@@ -8,7 +8,11 @@ from typing import Any
 from homeassistant.helpers import device_registry as dr
 
 from .build_input import build_domain_inputs, rematerialize_concept_mapping_metadata
-from .configured_surfaces import build_configured_surface_inputs, configured_surface_integrations
+from .configured_surfaces import (
+    build_configured_surface_inputs,
+    configured_surface_entity_registry_ids,
+    configured_surface_integrations,
+)
 from .catalog_builder import build_catalog
 from .domain_config import effective_entry_configuration
 from .const import (
@@ -22,6 +26,7 @@ from .health import derive_success_health
 from .handoff import replace_entry_slice, structural_slice_changed
 from .concept_trace import build_concept_trace
 from .supervision import aggregate_system_supervision, read_domain_supervisory_statuses
+from .wizard_candidates import configured_entity_candidates
 from .wizard_state import legacy_empty_framework_selection
 
 
@@ -134,10 +139,14 @@ def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, A
     # Ordinary boot/refresh must inspect only explicit Foundation intent.
     # Published support is configuration metadata, not permission to scan HA.
     relevant_integrations = sorted(configured_integrations)
+    explicit_surface_entity_ids = configured_surface_entity_registry_ids(surface_selections)
     catalog = build_catalog(
         hass,
         revision=revision,
         selected_integrations=relevant_integrations,
+    )
+    surface_entity_candidates = configured_entity_candidates(
+        hass, explicit_surface_entity_ids
     )
     persisted_concept_mappings = dict(config.get(CONF_CONCEPT_MAPPINGS, {}) or {})
     persisted_device_selections = dict(config.get(CONF_DEVICE_SELECTIONS, {}) or {})
@@ -171,6 +180,7 @@ def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, A
         selections=surface_selections,
         catalog=catalog,
         configuration_revision=revision,
+        configured_entity_candidates=surface_entity_candidates,
     )
     for domain_id, inputs in surface_by_domain.items():
         by_domain.setdefault(domain_id, []).extend(inputs)
@@ -196,6 +206,7 @@ def build_snapshot(hass: Any, entry: Any, *, refresh_reason: str) -> dict[str, A
         "developer_mode": bool(config.get(CONF_DEVELOPER_MODE, False)),
         "selected_integrations": selected,
         "catalog_scope_integrations": relevant_integrations,
+        "configured_surface_entity_registry_ids": sorted(explicit_surface_entity_ids),
         "concept_mappings": concept_mappings,
         "technical_selections": list(config.get(CONF_TECHNICAL_SELECTIONS, []) or []),
         "device_selections": device_selections,

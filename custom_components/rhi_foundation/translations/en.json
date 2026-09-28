@@ -65,7 +65,7 @@
       },
       "review": {
         "title": "Review domain configuration",
-        "description": "{review_summary}",
+        "description": "{review_summary}\n\nVerify the exact integrations/devices or entity mappings above before saving. A configured concept is only usable downstream when Foundation can re-resolve its selected technical sources.",
         "data": {}
       },
       "no_configurable_domains": {
@@ -89,7 +89,7 @@
       },
       "surface_fields": {
         "title": "Configure {surface}",
-        "description": "{domain} · {concept}\n\nSelect only the measurements you want to configure. Fields may be left empty unless they are needed to satisfy the minimum valid combination defined by the domain."
+        "description": "{domain} · {concept}\n\n{minimum_summary}\n\nAvailable fields:\n{field_guidance}\n\nChoose the Home Assistant measurements that represent this concept. Foundation keeps stable Entity Registry identity, so entity renames can be resolved without changing the semantic configuration."
       },
       "surface_edit": {
         "title": "Choose logical device to edit",
@@ -113,7 +113,7 @@
       "invalid_domain": "Choose a valid published RHI domain.",
       "select_instance": "Choose a configured logical device.",
       "minimum_not_satisfied": "The selected measurements do not yet form a valid minimum configuration. Complete one of the required combinations, or go back and leave this concept unconfigured.",
-      "entity_unavailable": "The selected entity is no longer available in the Foundation candidate catalog."
+      "entity_unavailable": "The selected Home Assistant entity can no longer be resolved. Review this mapping and choose an available compatible source."
     }
   },
   "options": {
@@ -194,7 +194,7 @@
       },
       "review": {
         "title": "Review selected domain",
-        "description": "{review_summary}",
+        "description": "{review_summary}\n\nVerify the exact integrations/devices or entity mappings above before saving. A configured concept is only usable downstream when Foundation can re-resolve its selected technical sources.",
         "data": {}
       },
       "no_configurable_domains": {
@@ -218,7 +218,7 @@
       },
       "surface_fields": {
         "title": "Configure {surface}",
-        "description": "{domain} · {concept}\n\nSelect only the measurements you want to configure. Fields may be left empty unless they are needed to satisfy the minimum valid combination defined by the domain."
+        "description": "{domain} · {concept}\n\n{minimum_summary}\n\nAvailable fields:\n{field_guidance}\n\nChoose the Home Assistant measurements that represent this concept. Foundation keeps stable Entity Registry identity, so entity renames can be resolved without changing the semantic configuration."
       },
       "surface_edit": {
         "title": "Choose logical device to edit",
@@ -244,7 +244,7 @@
       "foundation_settings_cannot_be_removed": "Foundation technical settings can be changed but not removed as a domain.",
       "select_instance": "Choose a configured logical device.",
       "minimum_not_satisfied": "The selected measurements do not yet form a valid minimum configuration. Complete one of the required combinations, or go back and leave this concept unconfigured.",
-      "entity_unavailable": "The selected entity is no longer available in the Foundation candidate catalog."
+      "entity_unavailable": "The selected Home Assistant entity can no longer be resolved. Review this mapping and choose an available compatible source."
     }
   }
 }

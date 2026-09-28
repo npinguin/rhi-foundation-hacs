@@ -86,6 +86,7 @@ def minimum_satisfied(minimum: dict[str, Any] | None, selected_fields: set[str])
 
 
 def configured_surface_integrations(selections: dict[str, Any]) -> set[str]:
+    """Return integration scopes explicitly referenced by configured surfaces."""
     result: set[str] = set()
     for selection in selections.values():
         if not isinstance(selection, dict):
@@ -100,6 +101,28 @@ def configured_surface_integrations(selections: dict[str, Any]) -> set[str]:
     return result
 
 
+def configured_surface_entity_registry_ids(selections: dict[str, Any]) -> set[str]:
+    """Return stable Entity Registry identities explicitly selected by the user.
+
+    Direct entity mappings are authoritative explicit intent even when an entity is
+    YAML/template-backed and therefore has no ConfigEntry.  Runtime discovery must
+    be able to re-materialize those exact registry rows without widening catalog
+    discovery to every Home Assistant entity.
+    """
+    result: set[str] = set()
+    for selection in selections.values():
+        if not isinstance(selection, dict):
+            continue
+        for field in (selection.get("fields") or {}).values():
+            if not isinstance(field, dict):
+                continue
+            source = field.get("source_identity") or {}
+            registry_id = str(source.get("entity_registry_id") or "")
+            if registry_id:
+                result.add(registry_id)
+    return result
+
+
 def surface_selection_belongs_to_domain(
     key: str,
     selection: Any,
@@ -110,16 +133,41 @@ def surface_selection_belongs_to_domain(
     return str(key).startswith(f"surface:{domain_id}.")
 
 
-def _candidate_by_registry_id(catalog: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    result: dict[str, dict[str, Any]] = {}
-    for candidate in catalog.get("candidates", []) or []:
+def _candidates_by_registry_id(
+    catalog: dict[str, Any],
+    configured_entity_candidates: list[dict[str, Any]] | None = None,
+) -> dict[str, list[dict[str, Any]]]:
+    """Index all technical candidates without losing multi-capability entities."""
+    result: dict[str, list[dict[str, Any]]] = {}
+    rows = list(catalog.get("candidates", []) or []) + list(
+        configured_entity_candidates or []
+    )
+    for candidate in rows:
         if not isinstance(candidate, dict):
             continue
         source = candidate.get("source_identity") or {}
         registry_id = str(source.get("entity_registry_id") or "")
         if registry_id:
-            result[registry_id] = candidate
+            result.setdefault(registry_id, []).append(candidate)
     return result
+
+
+def _candidate_matches_field(
+    candidate: dict[str, Any], field: dict[str, Any] | None
+) -> bool:
+    if not field:
+        return True
+    technical = candidate.get("technical_capability") or {}
+    accepted_caps = {
+        str(item) for item in (field.get("technical_capabilities") or []) if item
+    }
+    accepted_units = {str(item) for item in (field.get("units") or []) if item}
+    capability = str(technical.get("capability_class") or "")
+    unit = str(technical.get("native_unit") or "")
+    return (
+        (not accepted_caps or capability in accepted_caps)
+        and (not accepted_units or unit in accepted_units)
+    )
 
 
 def build_configured_surface_inputs(
@@ -128,10 +176,11 @@ def build_configured_surface_inputs(
     selections: dict[str, Any],
     catalog: dict[str, Any],
     configuration_revision: int,
+    configured_entity_candidates: list[dict[str, Any]] | None = None,
 ) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]]]:
     """Build domain-neutral configured surface handoff from explicit user intent."""
     descriptors = configuration_surface_index(specifications)
-    candidates = _candidate_by_registry_id(catalog)
+    candidates = _candidates_by_registry_id(catalog, configured_entity_candidates)
     by_domain: dict[str, list[dict[str, Any]]] = {}
     flat: list[dict[str, Any]] = []
 
@@ -161,9 +210,27 @@ def build_configured_surface_inputs(
                 continue
             source = configured.get("source_identity") or {}
             registry_id = str(source.get("entity_registry_id") or "")
-            candidate = candidates.get(registry_id)
+            descriptor_field = next(
+                (
+                    item
+                    for item in ((descriptor or {}).get("fields") or [])
+                    if str(item.get("field_id") or "") == str(field_id)
+                ),
+                None,
+            )
+            matching_candidates = [
+                item
+                for item in candidates.get(registry_id, [])
+                if _candidate_matches_field(item, descriptor_field)
+            ]
+            candidate = matching_candidates[0] if len(matching_candidates) == 1 else None
             if candidate is None:
-                issues.append(f"configured_entity_unavailable:{field_id}")
+                issue = (
+                    f"configured_entity_ambiguous:{field_id}"
+                    if len(matching_candidates) > 1
+                    else f"configured_entity_unavailable:{field_id}"
+                )
+                issues.append(issue)
                 fields.append({
                     "field_id": str(field_id),
                     "source_identity": dict(source),

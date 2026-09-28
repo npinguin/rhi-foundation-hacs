@@ -219,11 +219,22 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
             f"- {label}: " + ", ".join(_integration_label(i) for i in sorted(integrations))
             for (_concept, label), integrations in sorted(grouped.items())
         ]
-        surface_lines = [
-            f"- {item.get('display_name') or item.get('object_type') or item.get('surface_id')}"
-            for item in self._configuration_surface_selections.values()
-            if isinstance(item, dict) and str(item.get("domain") or "") == domain_id
-        ]
+        surface_lines: list[str] = []
+        for item in self._configuration_surface_selections.values():
+            if not isinstance(item, dict) or str(item.get("domain") or "") != domain_id:
+                continue
+            name = str(item.get("display_name") or item.get("object_type") or item.get("surface_id"))
+            fields = item.get("fields") or {}
+            mappings = []
+            for field_id, configured in sorted(fields.items()):
+                if not isinstance(configured, dict):
+                    continue
+                source = configured.get("source_identity") or {}
+                entity_id = str(source.get("current_entity_id") or "unresolved")
+                mappings.append(f"{field_id} → {entity_id}")
+            surface_lines.append(
+                f"- {name}: " + (", ".join(mappings) if mappings else "no entity mappings")
+            )
         summary = "\n".join(
             [
                 f"Domain: {_domain_label(domain_id)}",

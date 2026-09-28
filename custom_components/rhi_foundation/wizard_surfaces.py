@@ -152,6 +152,33 @@ class ConfigurationSurfaceWizardMixin:
             str(item.get("display_name") or item.get("instance_id") or key)
             for key, item in instances.items()
         ]
+        field_lines: list[str] = []
+        for field in surface.get("fields") or []:
+            field_id = str(field.get("field_id") or "")
+            label = str(field.get("display_name") or field_id)
+            units = "/".join(str(item) for item in (field.get("units") or []) if item)
+            candidate_count = len(compatible_entity_ids(self.hass, field))
+            detail = f"{label} ({field_id})"
+            if units:
+                detail += f" · {units}"
+            detail += f" · {candidate_count} compatible source(s)"
+            field_lines.append(f"- {detail}")
+
+        minimum = surface.get("minimum") or {}
+        if minimum.get("all_of"):
+            minimum_summary = "Required together: " + ", ".join(
+                str(item) for item in minimum.get("all_of") or []
+            )
+        elif minimum.get("any_of"):
+            alternatives = [
+                " + ".join(str(item) for item in group)
+                for group in minimum.get("any_of") or []
+                if isinstance(group, list)
+            ]
+            minimum_summary = "Minimum: " + " OR ".join(alternatives)
+        else:
+            minimum_summary = "No mandatory field combination"
+
         return {
             "domain": str(concept.get("domain_presentation", {}).get("display_name") or concept["domain"]),
             "concept": str(concept.get("label") or concept["concept"]),
@@ -159,6 +186,8 @@ class ConfigurationSurfaceWizardMixin:
             "cardinality": str(surface.get("cardinality") or ""),
             "configured_count": str(len(instances)),
             "configured_instances": ", ".join(names) or "None",
+            "field_guidance": "\n".join(field_lines) or "- No fields published",
+            "minimum_summary": minimum_summary,
         }
 
     async def async_step_surface_fields(self, user_input=None):
