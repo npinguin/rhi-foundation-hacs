@@ -46,7 +46,7 @@ class ConfigurationSurfaceWizardMixin:
         return result
 
     async def async_step_concept_surfaces(self, user_input=None):
-        """Render the next configured surface without encoding navigation as data."""
+        """Render every logical-device surface through one consistent action menu."""
         if self._surface_index >= len(self._surface_queue):
             self._concept_index += 1
             return await self.async_step_concept_intro()
@@ -55,20 +55,18 @@ class ConfigurationSurfaceWizardMixin:
         instances = self._surface_instances(surface)
         cardinality = str(surface.get("cardinality") or "")
 
-        # A singleton is not an action menu. Enter its fields directly; the
-        # native HA form submit is the forward/save action.
+        options: list[str] = []
         if cardinality == "singleton":
-            self._active_surface_instance_id = "singleton"
-            return await self.async_step_surface_fields()
+            if instances:
+                options.extend(["surface_edit", "surface_remove"])
+            else:
+                options.append("surface_add")
+        else:
+            options.append("surface_add")
+            if instances:
+                options.extend(["surface_edit", "surface_remove"])
+        options.extend(["surface_continue", "surface_back"])
 
-        options: dict[str, str] = {
-            "surface_add": "Add logical device",
-            "surface_continue": "Next",
-            "surface_back": "Back",
-        }
-        if instances:
-            options["surface_edit"] = "Edit logical device"
-            options["surface_remove"] = "Remove logical device"
         return self.async_show_menu(
             step_id="concept_surfaces",
             menu_options=options,
@@ -76,7 +74,12 @@ class ConfigurationSurfaceWizardMixin:
         )
 
     async def async_step_surface_add(self, user_input=None):
-        self._active_surface_instance_id = uuid4().hex[:12]
+        surface = self._current_surface()
+        self._active_surface_instance_id = (
+            "singleton"
+            if str(surface.get("cardinality") or "") == "singleton"
+            else uuid4().hex[:12]
+        )
         return await self.async_step_surface_fields()
 
     async def async_step_surface_continue(self, user_input=None):

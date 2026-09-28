@@ -85,7 +85,14 @@
       },
       "concept_surfaces": {
         "title": "Configure {surface}",
-        "description": "{domain} · {concept}\\nCardinality: {cardinality} · Configured: {configured_count}\\n{configured_instances}"
+        "description": "{domain} · {concept}\nCardinality: {cardinality} · Configured: {configured_count}\n{configured_instances}",
+        "menu_options": {
+          "surface_add": "Add logical device",
+          "surface_edit": "Edit logical device",
+          "surface_remove": "Remove logical device",
+          "surface_continue": "Next",
+          "surface_back": "Back"
+        }
       },
       "surface_fields": {
         "title": "Configure {surface}",
@@ -214,7 +221,14 @@
       },
       "concept_surfaces": {
         "title": "Configure {surface}",
-        "description": "{domain} · {concept}\\nCardinality: {cardinality} · Configured: {configured_count}\\n{configured_instances}"
+        "description": "{domain} · {concept}\nCardinality: {cardinality} · Configured: {configured_count}\n{configured_instances}",
+        "menu_options": {
+          "surface_add": "Add logical device",
+          "surface_edit": "Edit logical device",
+          "surface_remove": "Remove logical device",
+          "surface_continue": "Next",
+          "surface_back": "Back"
+        }
       },
       "surface_fields": {
         "title": "Configure {surface}",

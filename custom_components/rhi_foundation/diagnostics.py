@@ -16,6 +16,33 @@ async def async_get_config_entry_diagnostics(
     """Return the authoritative troubleshooting payload; sensors remain summaries."""
     runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     snapshot = deepcopy(runtime.get("snapshot", {}))
+    published_surfaces: list[dict[str, Any]] = []
+    for specification in snapshot.get("domain_build_specifications", []) or []:
+        if not isinstance(specification, dict):
+            continue
+        domain_id = str(specification.get("domain_id") or "")
+        concept_id = str((specification.get("concept") or {}).get("concept_id") or "")
+        for surface in specification.get("configuration_surfaces", []) or []:
+            if not isinstance(surface, dict):
+                continue
+            published_surfaces.append({
+                "domain_id": domain_id,
+                "concept_id": concept_id,
+                "surface_id": surface.get("surface_id"),
+                "object_type": surface.get("object_type"),
+                "cardinality": surface.get("cardinality"),
+                "minimum": deepcopy(surface.get("minimum")),
+                "fields": [
+                    {
+                        "field_id": field.get("field_id"),
+                        "display_name": field.get("display_name"),
+                        "technical_capabilities": deepcopy(field.get("technical_capabilities") or []),
+                        "units": deepcopy(field.get("units") or []),
+                    }
+                    for field in (surface.get("fields") or [])
+                    if isinstance(field, dict)
+                ],
+            })
     return {
         "identity": {
             "integration_domain": DOMAIN,
@@ -37,8 +64,10 @@ async def async_get_config_entry_diagnostics(
             "selected_integrations": snapshot.get("selected_integrations", []),
             "concept_mappings": snapshot.get("concept_mappings", {}),
             "device_selections": snapshot.get("device_selections", {}),
+            "configuration_surface_selections": snapshot.get("configuration_surface_selections", {}),
         },
         "build_handoff": {
+            "configuration_surfaces": published_surfaces,
             "publication_index": snapshot.get("publication_index", []),
             "domain_build_specifications": snapshot.get("domain_build_specifications", []),
             "concept_trace": snapshot.get("concept_trace", []),

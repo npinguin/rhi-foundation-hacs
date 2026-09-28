@@ -372,22 +372,25 @@ class FoundationWizardMixin(ConfigurationSurfaceWizardMixin):
         )
 
     async def async_step_concept_source(self, user_input=None):
-        """Choose the source path before configuring source-specific details."""
-        concept = self._current_concept()
-        if not concept.get("configuration_surfaces"):
-            return await self.async_step_concept_integrations()
+        """Choose the source path consistently for every concept.
 
+        Optionality is a concept-level decision and must never depend on whether
+        a domain happened to publish a direct-entity configuration surface.
+        Every concept therefore exposes the same skip/back actions first.
+        """
+        concept = self._current_concept()
         available = ", ".join(
             _integration_label(item) for item in concept.get("available_integrations", [])
         ) or "No installed published sources"
+
+        options = ["concept_source_integrations"]
+        if concept.get("configuration_surfaces"):
+            options.append("concept_source_entities")
+        options.extend(["concept_source_skip", "concept_source_back"])
+
         return self.async_show_menu(
             step_id="concept_source",
-            menu_options=[
-                "concept_source_integrations",
-                "concept_source_entities",
-                "concept_source_skip",
-                "concept_source_back",
-            ],
+            menu_options=options,
             description_placeholders={
                 "concept": str(concept.get("label") or concept.get("concept") or ""),
                 "available_integrations": available,
