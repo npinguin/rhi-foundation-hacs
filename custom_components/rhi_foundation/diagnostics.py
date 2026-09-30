@@ -8,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, RELEASE, SHARED_BASELINE_VERSION
+from .supervision import aggregate_system_supervision, read_domain_supervisory_statuses
 
 
 async def async_get_config_entry_diagnostics(
@@ -16,6 +17,18 @@ async def async_get_config_entry_diagnostics(
     """Return the authoritative troubleshooting payload; sensors remain summaries."""
     runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     snapshot = deepcopy(runtime.get("snapshot", {}))
+
+    # Supervision providers are live pull contracts. The structural Foundation
+    # snapshot may legitimately predate a later domain recovery, so diagnostics
+    # must not present that cache as current health. Read registered providers
+    # directly without triggering discovery, handoff, polling or a domain event.
+    live_domain_statuses = read_domain_supervisory_statuses(hass)
+    live_system_supervision = aggregate_system_supervision(
+        live_domain_statuses,
+        foundation_health=runtime.get("runtime_health", {}),
+    )
+    cached_domain_statuses = snapshot.get("domain_supervisory_statuses", []) or []
+    cached_observed_at = snapshot.get("supervision_observed_at")
     published_surfaces: list[dict[str, Any]] = []
     for specification in snapshot.get("domain_build_specifications", []) or []:
         if not isinstance(specification, dict):
@@ -53,8 +66,12 @@ async def async_get_config_entry_diagnostics(
         },
         "health": deepcopy(runtime.get("runtime_health", {})),
         "supervision": {
-            "system": snapshot.get("system_supervision", {}),
-            "domains": snapshot.get("domain_supervisory_statuses", []),
+            "system": live_system_supervision,
+            "domains": live_domain_statuses,
+            "authority": "live_registered_domain_providers",
+            "cached_snapshot_observed_at": cached_observed_at,
+            "cached_domain_statuses": cached_domain_statuses,
+            "cache_matches_live": cached_domain_statuses == live_domain_statuses,
         },
         "configuration": {
             "data": deepcopy(dict(entry.data)),
