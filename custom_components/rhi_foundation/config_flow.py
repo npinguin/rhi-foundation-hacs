@@ -28,8 +28,6 @@ from .wizard import (
 )
 from .wizard_state import concept_target_id
 
-ACTION_CONFIGURE = "configure"
-ACTION_REMOVE = "remove"
 FOUNDATION_SETTINGS = "__foundation_settings__"
 
 
@@ -87,66 +85,69 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
 
     async def async_step_init(self, user_input=None):
         if not getattr(self, "_initialized", False):
-            defaults = effective_entry_configuration(self.config_entry.data, self.config_entry.options)
+            defaults = effective_entry_configuration(
+                self.config_entry.data, self.config_entry.options
+            )
             self._base_config = defaults
             self._selected_domain_id = None
             self._initialize_state(defaults)
         await async_refresh_framework_resource_providers(self.hass)
         self._records = _domain_records(self.hass, self._concept_mappings)
-        return await self.async_step_domain_select(user_input)
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=[
+                "configure_domain",
+                "remove_domain_select",
+                "foundation_settings",
+            ],
+        )
 
-    async def async_step_domain_select(self, user_input=None):
+    async def async_step_configure_domain(self, user_input=None):
         choices = _domain_choices(self._records, self._concept_mappings)
-        choices[FOUNDATION_SETTINGS] = "Foundation technical settings — global diagnostics only"
-        configured = configured_domains(self._base_config)
         errors: dict[str, str] = {}
-
         if user_input is not None:
             domain_id = str(user_input.get("domain_id") or "")
-            action = str(user_input.get("domain_action") or ACTION_CONFIGURE)
-            if domain_id == FOUNDATION_SETTINGS:
-                if action == ACTION_REMOVE:
-                    errors["base"] = "foundation_settings_cannot_be_removed"
-                else:
-                    self._selected_domain_id = FOUNDATION_SETTINGS
-                    return await self.async_step_foundation_settings()
+            selected = next(
+                (item for item in self._records if str(item["domain"]) == domain_id),
+                None,
+            )
+            if selected is None:
+                errors["base"] = "invalid_domain"
             else:
-                selected = next(
-                    (item for item in self._records if str(item["domain"]) == domain_id),
-                    None,
-                )
-                if selected is None:
-                    errors["base"] = "invalid_domain"
-                elif action == ACTION_REMOVE:
-                    if domain_id not in configured:
-                        errors["base"] = "domain_not_configured"
-                    else:
-                        self._selected_domain_id = domain_id
-                        return await self.async_step_remove_domain()
-                else:
-                    self._selected_domain_id = domain_id
-                    self._domain_queue = [selected]
-                    self._domain_index = 0
-                    return await self.async_step_domain_intro()
-
+                self._selected_domain_id = domain_id
+                self._domain_queue = [selected]
+                self._domain_index = 0
+                return await self.async_step_domain_intro()
         return self.async_show_form(
-            step_id="domain_select",
-            data_schema=vol.Schema(
-                {
-                    vol.Required("domain_id"): vol.In(choices),
-                    vol.Required("domain_action", default=ACTION_CONFIGURE): vol.In(
-                        {
-                            ACTION_CONFIGURE: "Configure / reconfigure selected scope",
-                            ACTION_REMOVE: "Remove selected domain configuration from Foundation",
-                        }
-                    ),
-                }
-            ),
+            step_id="configure_domain",
+            data_schema=vol.Schema({vol.Required("domain_id"): vol.In(choices)}),
             errors=errors,
-            description_placeholders={
-                "domain_count": str(len(self._records)),
-                "ownership": "Choose one domain. Only that domain is changed. Foundation technical settings are a separate global diagnostics scope.",
-            },
+            description_placeholders={"domain_count": str(len(choices))},
+        )
+
+    async def async_step_remove_domain_select(self, user_input=None):
+        configured = configured_domains(self._base_config)
+        choices = {
+            domain_id: label
+            for domain_id, label in _domain_choices(
+                self._records, self._concept_mappings
+            ).items()
+            if domain_id in configured
+        }
+        if not choices:
+            return self.async_abort(reason="no_configured_domains_to_remove")
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            domain_id = str(user_input.get("domain_id") or "")
+            if domain_id not in choices:
+                errors["base"] = "domain_not_configured"
+            else:
+                self._selected_domain_id = domain_id
+                return await self.async_step_remove_domain()
+        return self.async_show_form(
+            step_id="remove_domain_select",
+            data_schema=vol.Schema({vol.Required("domain_id"): vol.In(choices)}),
+            errors=errors,
         )
 
     async def async_step_foundation_settings(self, user_input=None):
@@ -180,7 +181,7 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
             if bool(user_input.get("confirm_remove", False)):
                 cleaned = remove_domain_configuration(self._base_config, domain_id=domain_id)
                 return self.async_create_entry(title="", data=cleaned)
-            return await self.async_step_domain_select()
+            return await self.async_step_remove_domain_select()
 
         return self.async_show_form(
             step_id="remove_domain",
