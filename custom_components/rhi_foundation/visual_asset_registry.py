@@ -292,7 +292,7 @@ def visual_asset_registry_snapshot(hass: Any) -> dict[str, Any]:
     providers.sort(key=lambda row: row["publisher_domain"])
     return {
         "contract_id": VISUAL_ASSET_REGISTRY_CONTRACT,
-        "contract_version": "1.1.0",
+        "contract_version": "2.0.0",
         "ownership": {
             "registry": "rhi_foundation",
             "assignment": "owning_domain",
