@@ -190,24 +190,6 @@ def register_domain_supervisory_status_provider(
     return _unsubscribe
 
 
-def notify_domain_supervisory_status_changed(
-    hass: Any,
-    *,
-    domain_id: str,
-    publisher_domain: str,
-    reason: str = "status_changed",
-) -> bool:
-    """Compatibility no-op for former runtime-driven supervision notifications.
-
-    Baseline 1.8.1 deliberately forbids domain telemetry/runtime changes from waking
-    Foundation. Foundation reads the registered provider once at registration/setup.
-    A future periodic refresh, when introduced, is Foundation-owned and bounded.
-    Returning ``False`` makes legacy callers harmless while domains migrate away from
-    this helper.
-    """
-    return False
-
-
 def unregister_domain_supervisory_status_provider(
     hass: Any,
     *,

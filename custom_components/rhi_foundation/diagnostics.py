@@ -27,8 +27,6 @@ async def async_get_config_entry_diagnostics(
         live_domain_statuses,
         foundation_health=runtime.get("runtime_health", {}),
     )
-    cached_domain_statuses = snapshot.get("domain_supervisory_statuses", []) or []
-    cached_observed_at = snapshot.get("supervision_observed_at")
     published_surfaces: list[dict[str, Any]] = []
     for specification in snapshot.get("domain_build_specifications", []) or []:
         if not isinstance(specification, dict):
@@ -69,9 +67,8 @@ async def async_get_config_entry_diagnostics(
             "system": live_system_supervision,
             "domains": live_domain_statuses,
             "authority": "live_registered_domain_providers",
-            "cached_snapshot_observed_at": cached_observed_at,
-            "cached_domain_statuses": cached_domain_statuses,
-            "cache_matches_live": cached_domain_statuses == live_domain_statuses,
+            "cache_mode": "none",
+            "observation_semantics": "live_pull_only_no_structural_health_cache",
         },
         "configuration": {
             "data": deepcopy(dict(entry.data)),
