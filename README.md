@@ -12,7 +12,7 @@ Add `https://github.com/npinguin/rhi-foundation-hacs` to HACS as a custom **Inte
 - GitHub releases: immutable validated package versions for test installation and rollback.
 - Production approval is a separate private release-governance decision and is not implied by the presence of a public HACS version.
 
-For the current pilot cycle, install **1.8.29** as the Foundation test candidate. Energy and Mobility remain independently versioned domain packages.
+Install the versioned test candidate explicitly selected by the coordinated RHI release qualification. Verify its version against the integration manifest and `DISTRIBUTION_SOURCE.json`; no fixed historical version in this README is authoritative. Energy and Mobility remain independently versioned domain packages.
 
 ## Status
 
