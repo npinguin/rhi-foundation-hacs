@@ -3,8 +3,8 @@ from __future__ import annotations
 
 DOMAIN = "rhi_foundation"
 MODULE_DISPLAY_NAME = "Robotix Home Intelligence - Foundation Module"
-RELEASE = "F1.8.43"
-RELEASE_NAME = "PRESENTATION_PROJECTION_BASELINE"
+RELEASE = "F1.8.44"
+RELEASE_NAME = "PUBLICATION_INVENTORY_LIFECYCLE"
 SHARED_BASELINE_ID = "RHI_SHARED_ARCHITECTURE_BASELINE"
 SHARED_BASELINE_VERSION = "1.8.5"
 EXECUTION_MODEL = "configuration_time_active_runtime_passive"
@@ -56,3 +56,7 @@ SOURCE_KINDS = (
 ATTRIBUTE_PREVIEW_LIMIT = 20
 
 HEALTH_STATES = ("OK", "DEGRADED", "STALE", "INVALID", "UNKNOWN")
+
+DOMAIN_PUBLICATION_INVENTORY_REGISTRY = "rhi_domain_publication_inventory_registry"
+DOMAIN_PUBLICATION_INVENTORY_CHANGED_EVENT = "rhi_domain_publication_inventory_changed"
+FOUNDATION_PUBLICATION_INVENTORY_SERVICE = "get_publication_inventory"

@@ -5,7 +5,7 @@ import asyncio
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Event, HomeAssistant, ServiceCall
+from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
@@ -22,10 +22,17 @@ from .const import (
     DOMAIN_SUPERVISORY_STATUS_CHANGED_EVENT,
     FOUNDATION_DISPATCH_SIGNAL,
     FOUNDATION_REFRESH_SERVICE,
+    FOUNDATION_PUBLICATION_INVENTORY_SERVICE,
+    RELEASE,
     PLATFORMS,
 )
 from .runtime import async_refresh_snapshot, async_refresh_supervision_snapshot, remove_published_inputs
 from .wizard_state import canonicalize_multi_mapping_shape
+from .publication_inventory import (
+    FoundationPublicationInventoryProvider,
+    register_domain_publication_inventory_provider,
+    get_domain_publication_inventory,
+)
 
 CONFIG_ENTRY_VERSION = 6
 _MAX_COALESCED_REASONS = 8
@@ -203,6 +210,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     entry.async_on_unload(unsub_supervision)
 
+    # Structural inventory is registered once per config-entry generation. It
+    # does not rescan HA states or make any domain a source of semantic truth.
+    inventory_unsub = register_domain_publication_inventory_provider(
+        hass, publisher_domain=DOMAIN,
+        provider=FoundationPublicationInventoryProvider(RELEASE),
+    )
+    entry.async_on_unload(inventory_unsub)
+
+    async def _inventory_service(call: ServiceCall) -> dict[str, Any]:
+        return get_domain_publication_inventory(
+            hass, domain_id=call.data["domain_id"],
+            offset=call.data.get("offset", 0), limit=call.data.get("limit", 50),
+        )
+
+    if not hass.services.has_service(DOMAIN, FOUNDATION_PUBLICATION_INVENTORY_SERVICE):
+        import voluptuous as vol
+        hass.services.async_register(
+            DOMAIN, FOUNDATION_PUBLICATION_INVENTORY_SERVICE, _inventory_service,
+            schema=vol.Schema({
+                vol.Required("domain_id"): vol.In(["rhi_foundation", "rhi_energy", "rhi_mobility"]),
+                vol.Optional("offset", default=0): vol.All(vol.Coerce(int), vol.Range(min=0)),
+                vol.Optional("limit", default=50): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+            }), supports_response=SupportsResponse.ONLY,
+        )
+
     if not hass.services.has_service(DOMAIN, FOUNDATION_REFRESH_SERVICE):
         hass.services.async_register(
             DOMAIN,
@@ -245,6 +277,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
         if hass.services.has_service(DOMAIN, FOUNDATION_REFRESH_SERVICE):
             hass.services.async_remove(DOMAIN, FOUNDATION_REFRESH_SERVICE)
+        if hass.services.has_service(DOMAIN, FOUNDATION_PUBLICATION_INVENTORY_SERVICE):
+            hass.services.async_remove(DOMAIN, FOUNDATION_PUBLICATION_INVENTORY_SERVICE)
     return unloaded
 
 

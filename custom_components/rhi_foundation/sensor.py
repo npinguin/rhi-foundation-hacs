@@ -77,6 +77,7 @@ async def async_setup_entry(
             FoundationSubmodulesSensor(entry.entry_id),
             FoundationConfigurationSensor(entry.entry_id),
             FoundationVisualAssetRegistrySensor(entry.entry_id),
+            FoundationPublicationInventorySensor(entry.entry_id),
         ]
     )
 
@@ -322,4 +323,32 @@ class FoundationVisualAssetRegistrySensor(FoundationBaseSensor):
 
     @callback
     def _handle_visual_registry_changed(self, _event: Any) -> None:
+        self.async_write_ha_state()
+
+
+class FoundationPublicationInventorySensor(FoundationBaseSensor):
+    """Bounded discoverability/identity; full declarations use the paged service."""
+    _attr_name = "RHI Foundation Publication Inventory"
+    _attr_unique_id = "publication_inventory"
+    _attr_entity_registry_enabled_default = False
+
+    @property
+    def native_value(self):
+        from .publication_inventory import publication_inventory_summary
+        return len(publication_inventory_summary(self.hass)["domains"])
+
+    @property
+    def extra_state_attributes(self):
+        from .publication_inventory import publication_inventory_summary
+        return publication_inventory_summary(self.hass)
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        from .publication_inventory import CHANGED_EVENT
+        self.async_on_remove(self.hass.bus.async_listen(
+            CHANGED_EVENT, self._on_publication_changed,
+        ))
+
+    @callback
+    def _on_publication_changed(self, _event):
         self.async_write_ha_state()

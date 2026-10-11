@@ -1,3 +1,38 @@
 refresh_snapshot:
   name: Refresh Foundation snapshot
   description: Rebuild the bounded technical catalog, domain publication catalog and selected build inputs without creating runtime bindings.
+
+get_publication_inventory:
+  name: Get canonical domain publication inventory
+  description: Return a bounded page of authoritative domain-owned HA property, metric and command contract declarations. Missing domains remain explicit.
+  fields:
+    domain_id:
+      name: Domain
+      description: Owning domain module.
+      required: true
+      selector:
+        select:
+          options:
+            - rhi_foundation
+            - rhi_energy
+            - rhi_mobility
+    offset:
+      name: Offset
+      description: Zero-based starting record.
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 100000
+          mode: box
+    limit:
+      name: Page size
+      description: Maximum 100 entries per page.
+      required: false
+      default: 50
+      selector:
+        number:
+          min: 1
+          max: 100
+          mode: box

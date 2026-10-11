@@ -338,3 +338,13 @@ async def async_refresh_framework_resource_providers(hass: Any) -> None:
             result = refresh()
             if hasattr(result, "__await__"):
                 await result
+
+
+# Public discovery mechanism for all domain-owned product contracts.
+# See publication_inventory.py; never extend build-specification payloads to
+# smuggle runtime/UX semantics into Foundation's technical source catalog.
+from .publication_inventory import (
+    register_domain_publication_inventory_provider,
+    get_domain_publication_inventory,
+    publication_inventory_summary,
+)
