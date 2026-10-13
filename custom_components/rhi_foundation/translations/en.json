@@ -17,24 +17,24 @@
         }
       },
       "domain_intro": {
-        "title": "Configure {domain} ({position})",
+        "title": "Configure domain",
         "description": "{description}\n\n{selection_guidance}\n\nPublished concepts:\n{concepts}\n\nEach concept is configured separately: integrations, devices, then review.",
         "data": {}
       },
       "concept_intro": {
-        "title": "{concept} ({position})",
+        "title": "Configure concept",
         "description": "Domain: {domain}\n\n{description}\n\n{selection_guidance}\n\nAvailable installed integrations: {available_integrations}\nPublished but not installed: {unavailable_integrations}\nCurrently configured: {configured_integrations}",
         "data": {}
       },
       "concept_integrations": {
-        "title": "Choose integrations for {concept}",
+        "title": "Choose integrations",
         "description": "Domain: {domain}\nAvailable installed integrations: {available_count}\n\nAll currently available integrations are selected by default. Deselect only sources you do not want Foundation to use. Leaving all integrations unchecked skips this concept. Existing unavailable selections remain visible so Foundation never silently removes configured intent.",
         "data": {
           "concept_integrations": "Integrations"
         }
       },
       "concept_devices": {
-        "title": "Choose devices for {concept} ({position})",
+        "title": "Choose devices",
         "description": "Integration: {integration}\nDevices found: {device_count}\n\nAll concrete devices are selected by default. Deselect devices that do not belong to this concept. All matching remains available only as an explicit review-required scope.",
         "data": {
           "device_filter_mode": "Device filtering",
@@ -42,7 +42,7 @@
         }
       },
       "concept_review": {
-        "title": "Review {concept}",
+        "title": "Review concept",
         "description": "Domain: {domain}\n\n{configuration}\n\nReview required: {review_required}\n\nAll-matching is never silently accepted. If listed above, explicitly confirm it before continuing.",
         "data": {
           "confirm_all_matching": "Confirm all-matching selection for this concept"
@@ -56,7 +56,7 @@
         }
       },
       "technical_devices": {
-        "title": "Choose technical-observation devices ({position})",
+        "title": "Choose technical devices",
         "description": "Integration: {integration}\nMatching devices found: {device_count}\n\nThis selection is diagnostics-only and creates no domain binding.",
         "data": {
           "device_filter_mode": "Device filtering",
@@ -84,7 +84,7 @@
         }
       },
       "concept_surfaces": {
-        "title": "Configure {surface}",
+        "title": "Configure logical devices",
         "description": "{domain} · {concept}\nCardinality: {cardinality} · Configured: {configured_count}\n{configured_instances}",
         "menu_options": {
           "surface_add": "Add logical device",
@@ -95,7 +95,7 @@
         }
       },
       "surface_fields": {
-        "title": "Configure {surface}",
+        "title": "Configure logical device",
         "description": "{domain} · {concept}\n\n{minimum_summary}\n\nAvailable fields:\n{field_guidance}\n\nChoose the Home Assistant measurements that represent this concept. Foundation keeps stable Entity Registry identity, so entity renames can be resolved without changing the semantic configuration."
       },
       "surface_edit": {
@@ -138,31 +138,31 @@
         "data": {}
       },
       "remove_domain": {
-        "title": "Foundation settings › Remove › {domain}",
+        "title": "Foundation settings › Remove domain",
         "description": "{effect}\n\nThis removes Foundation-owned technical configuration only. It does not remove the domain integration itself.",
         "data": {
           "confirm_remove": "Confirm removal of this domain configuration"
         }
       },
       "domain_intro": {
-        "title": "Configure {domain} ({position})",
+        "title": "Configure domain",
         "description": "{description}\n\n{selection_guidance}\n\nPublished concepts:\n{concepts}\n\nEach concept is configured separately: integrations, devices, then review.",
         "data": {}
       },
       "concept_intro": {
-        "title": "{concept} ({position})",
+        "title": "Configure concept",
         "description": "Domain: {domain}\n\n{description}\n\n{selection_guidance}\n\nAvailable installed integrations: {available_integrations}\nPublished but not installed: {unavailable_integrations}\nCurrently configured: {configured_integrations}",
         "data": {}
       },
       "concept_integrations": {
-        "title": "Choose integrations for {concept}",
+        "title": "Choose integrations",
         "description": "Domain: {domain}\nAvailable installed integrations: {available_count}\n\nAll currently available integrations are selected by default. Deselect only sources you do not want Foundation to use. Leaving all integrations unchecked skips this concept. Existing unavailable selections remain visible so Foundation never silently removes configured intent.",
         "data": {
           "concept_integrations": "Integrations"
         }
       },
       "concept_devices": {
-        "title": "Choose devices for {concept} ({position})",
+        "title": "Choose devices",
         "description": "Integration: {integration}\nDevices found: {device_count}\n\nAll concrete devices are selected by default. Deselect devices that do not belong to this concept. All matching remains available only as an explicit review-required scope.",
         "data": {
           "device_filter_mode": "Device filtering",
@@ -170,7 +170,7 @@
         }
       },
       "concept_review": {
-        "title": "Review {concept}",
+        "title": "Review concept",
         "description": "Domain: {domain}\n\n{configuration}\n\nReview required: {review_required}\n\nAll-matching is never silently accepted. If listed above, explicitly confirm it before continuing.",
         "data": {
           "confirm_all_matching": "Confirm all-matching selection for this concept"
@@ -184,7 +184,7 @@
         }
       },
       "technical_devices": {
-        "title": "Choose technical-observation devices ({position})",
+        "title": "Choose technical devices",
         "description": "Integration: {integration}\nMatching devices found: {device_count}\n\nThis selection is diagnostics-only and creates no domain binding.",
         "data": {
           "device_filter_mode": "Device filtering",
@@ -212,7 +212,7 @@
         }
       },
       "concept_surfaces": {
-        "title": "Configure {surface}",
+        "title": "Configure logical devices",
         "description": "{domain} · {concept}\nCardinality: {cardinality} · Configured: {configured_count}\n{configured_instances}",
         "menu_options": {
           "surface_add": "Add logical device",
@@ -223,7 +223,7 @@
         }
       },
       "surface_fields": {
-        "title": "Configure {surface}",
+        "title": "Configure logical device",
         "description": "{domain} · {concept}\n\n{minimum_summary}\n\nAvailable fields:\n{field_guidance}\n\nChoose the Home Assistant measurements that represent this concept. Foundation keeps stable Entity Registry identity, so entity renames can be resolved without changing the semantic configuration."
       },
       "surface_edit": {
