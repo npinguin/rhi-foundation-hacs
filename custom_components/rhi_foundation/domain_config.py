@@ -45,10 +45,32 @@ def effective_entry_configuration(
     overlay = dict(options or {})
     merged = dict(base)
     merged.update(overlay)
-    for key in (CONF_CONCEPT_MAPPINGS, CONF_DEVICE_SELECTIONS, CONF_CONFIGURATION_SURFACE_SELECTIONS):
-        nested = dict(base.get(key, {}) or {})
-        nested.update(dict(overlay.get(key, {}) or {}))
-        merged[key] = nested
+    scope_keys = (
+        CONF_CONCEPT_MAPPINGS,
+        CONF_DEVICE_SELECTIONS,
+        CONF_CONFIGURATION_SURFACE_SELECTIONS,
+    )
+    # A committed Foundation OptionsFlow payload is a full, monotonically
+    # versioned configuration snapshot. Treating it as a partial per-key
+    # overlay resurrects explicitly deleted domains and old source selections
+    # from config_entry.data on every reload. Old unversioned partial options
+    # retain the historical additive merge for compatibility.
+    try:
+        data_revision = int(base.get(CONF_CONFIGURATION_REVISION, 0) or 0)
+        options_revision = int(overlay.get(CONF_CONFIGURATION_REVISION, 0) or 0)
+    except (TypeError, ValueError, OverflowError):
+        data_revision = options_revision = 0
+    complete_newer_snapshot = (
+        options_revision > data_revision
+        and all(isinstance(overlay.get(key), dict) for key in scope_keys)
+    )
+    for key in scope_keys:
+        if complete_newer_snapshot:
+            merged[key] = dict(overlay[key])
+        else:
+            nested = dict(base.get(key, {}) or {})
+            nested.update(dict(overlay.get(key, {}) or {}))
+            merged[key] = nested
     _recompute_selected_integrations(merged)
     return merged
 
