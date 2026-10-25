@@ -151,6 +151,11 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
         )
 
     async def async_step_foundation_settings(self, user_input=None):
+        # Menu navigation is not a domain edit. Without this explicit global
+        # transaction identity, _finish_flow uses merge_domain_configuration
+        # with domain_id="", discarding the updated developer flag and source
+        # observations while reporting a successful options Save.
+        self._selected_domain_id = FOUNDATION_SETTINGS
         if user_input is not None:
             self._developer_mode = bool(user_input.get(CONF_DEVELOPER_MODE, False))
             if self._developer_mode:
