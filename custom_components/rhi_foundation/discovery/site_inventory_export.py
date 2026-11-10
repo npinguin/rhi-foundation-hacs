@@ -46,6 +46,25 @@ def clean(raw: Any, limit: int = 140) -> str:
     return URL.sub("[url]", EMAIL.sub("[email]", MAC.sub("[mac]", IP.sub("[ip]", text))))
 
 
+def private_entity_reference(entity_id: str, registry_id: str | None) -> tuple[str, bool]:
+    """Retain unique private references instead of collapsing secret-like IDs.
+
+    The placeholder is deliberately NOT a valid HA entity_id. Domain generators
+    must not auto-bind it without an explicit approved source mapping.
+    """
+    # Home Assistant entity IDs are registry source identifiers, NOT secret
+    # values. A normal identifier such as sensor.access_token_expiry is
+    # critical for Basic/Premium source-map joins and must not be blanked by a
+    # free-text redaction heuristic. Only invalid/oversized source IDs are
+    # replaced with a non-executable opaque alias.
+    if len(entity_id) <= 255 and re.fullmatch(r"[a-z0-9_]+\.[a-z0-9_]+", entity_id):
+        return entity_id, False
+    fingerprint = hashlib.sha256(
+        ("ha-entity:" + str(registry_id or entity_id)).encode("utf-8")
+    ).hexdigest()[:24]
+    return "private_entity:" + fingerprint, True
+
+
 def optional_name(record: Any, field: str) -> str | None:
     val = value(record, field)
     return clean(val) if val is not None else None
@@ -82,7 +101,21 @@ def build_site_inventory(source: dict[str, Any], *, captured_at: str | None = No
     by_state = {str(value(x, "entity_id")): x for x in states}
     results: list[dict[str, Any]] = []
     entity_counts = Counter(str(value(x, "config_entry_id")) for x in ents if value(x, "config_entry_id"))
-    device_counts = Counter(str(value(x, "config_entry_id")) for x in devices if value(x, "config_entry_id"))
+    # Native Home Assistant DeviceEntry.config_entries is a set, and one
+    # device can belong to multiple integrations. Counting a legacy
+    # config_entry_id alone silently declares native devices unaccounted for.
+    device_entry_map: dict[str, list[str]] = {}
+    device_counts: Counter[str] = Counter()
+    for device in devices:
+        entry_ids = value(device, "config_entries")
+        if entry_ids is None:
+            fallback = value(device, "config_entry_id")
+            entry_ids = [fallback] if fallback else []
+        if not isinstance(entry_ids, (list, tuple, set, frozenset)):
+            entry_ids = [entry_ids]
+        associated = sorted({str(x) for x in entry_ids if x})
+        device_entry_map[str(value(device, "id"))] = associated
+        device_counts.update(associated)
     device_entity_counts = Counter(str(value(x, "device_id")) for x in ents if value(x, "device_id"))
 
     for e in entries:
@@ -92,20 +125,21 @@ def build_site_inventory(source: dict[str, Any], *, captured_at: str | None = No
             "integration_domain": clean(value(e, "domain") or "", 100),
             "title": optional_name(e, "title"),
             "state": clean(value(e, "state") or "unknown", 60),
+            "labels": sorted(str(x) for x in (value(e, "labels") or [])),
             "disabled_by": optional_name(e, "disabled_by"),
             "entity_count": entity_counts[eid],
             "device_count": device_counts[eid],
         })
     for d in devices:
         did = str(value(d, "id"))
-        entry_ids = value(d, "config_entries")
-        if entry_ids is None:
-            entry_ids = [value(d, "config_entry_id")] if value(d, "config_entry_id") else []
+        entry_ids = device_entry_map.get(did, [])
         results.append({
             "kind": "device", "key": did,
-            "device_registry_id": did, "config_entry_ids": sorted(str(x) for x in entry_ids if x),
+            "device_registry_id": did, "config_entry_ids": entry_ids,
             "via_device_registry_id": value(d, "via_device_id"),
-            "area_id": value(d, "area_id"), "name": clean(value(d, "name_by_user") or value(d, "name")),
+            "area_id": value(d, "area_id"),
+            "labels": sorted(str(x) for x in (value(d, "labels") or [])),
+            "name": clean(value(d, "name_by_user") or value(d, "name")),
             "manufacturer": optional_name(d, "manufacturer"), "model": optional_name(d, "model"),
             "identifiers_present": bool(value(d, "identifiers")),
             "connections_present": bool(value(d, "connections")),
@@ -131,23 +165,33 @@ def build_site_inventory(source: dict[str, Any], *, captured_at: str | None = No
         availability = ("missing" if state is None else "temporarily_unavailable"
                         if state_value in ("unknown", "unavailable") else "available")
         device = by_device.get(str(value(e, "device_id")))
+        safe_entity_id, redacted_entity_id = private_entity_reference(eid, value(e, "id"))
         feature_bits = value(attrs, "supported_features")
         if type(feature_bits) is not int:
             feature_bits = None
         results.append({
-            "kind": "entity", "key": clean(eid, 255), "current_entity_id": clean(eid, 255),
+            "kind": "entity", "key": safe_entity_id, "current_entity_id": safe_entity_id,
+            "entity_id_redacted": redacted_entity_id,
             "entity_registry_id": value(e, "id"), "config_entry_id": entry_id,
             "integration_domain": clean(integration_domain, 100),
             "device_registry_id": value(e, "device_id"), "area_id":
                 value(e, "area_id") or value(device, "area_id"),
+            "labels": sorted(str(x) for x in (value(e, "labels") or [])),
             "disabled_by": optional_name(e, "disabled_by"),
             "hidden_by": optional_name(e, "hidden_by"),
             "name": clean(value(e, "name") or value(e, "original_name") or "", 140),
+            # V1 identity_quality enum is backward-compatible; the new
+            # registry_provenance field exposes the missing distinction without
+            # breaking existing offline Basic consumers.
             "identity_quality": "FOUNDATION_REGISTRY" if source_identity else "UNSTABLE_OR_UNATTRIBUTED",
+            "registry_provenance": (
+                "FOUNDATION_CONFIG_ENTRY" if source_identity else
+                "REGISTRY_NO_CONFIG_ENTRY" if value(e, "id") else "STATE_ONLY"
+            ),
             "availability_at_capture": availability, "device_class": clean(device_class, 80),
             "state_class": clean(state_class, 80), "native_unit": clean(unit, 40),
             "supported_features": feature_bits, "technical_capabilities": caps,
-            "candidate_refs": candidates,
+            "candidate_refs": candidates if not redacted_entity_id else [],
             "technical_interaction_surface": domain in INTERACTION_DOMAINS,
             "semantic_owner": "UNASSIGNED_BY_FOUNDATION",
             "physical_writer": "NOT_AUTHORIZED_BY_DISCOVERY",
@@ -155,13 +199,16 @@ def build_site_inventory(source: dict[str, Any], *, captured_at: str | None = No
     for kind, key, label in (("areas", "area_id", "area"), ("floors", "floor_id", "floor"),
                               ("labels", "label_id", "label")):
         for item in source.get(kind, []) or []:
-            identifier = value(item, key)
+            # Native HA registry entries typically expose `id` rather than
+            # the relationship field (`area_id` / `label_id`).
+            identifier = value(item, key) or value(item, "id")
             if not identifier:
                 continue
             row = {"kind": label, "key": str(identifier), key: identifier,
                    "name": clean(value(item, "name"))}
             if kind == "areas":
                 row["floor_id"] = value(item, "floor_id")
+            row["labels"] = sorted(str(x) for x in (value(item, "labels") or []))
             results.append(row)
     services = source.get("services")
     if isinstance(services, dict):
@@ -219,21 +266,77 @@ def build_site_inventory(source: dict[str, Any], *, captured_at: str | None = No
         if source.get(field) is None:
             errors.setdefault(field, "optional_registry_unavailable")
 
+    # A successful registry read is not proof of a correct projection. Rooms
+    # referenced by devices/entities must resolve to an exported area.
+    exported_areas = {r["area_id"] for r in results if r["kind"] == "area"}
+    used_areas = {str(r["area_id"]) for r in results
+                  if r["kind"] in ("device", "entity") and r.get("area_id")}
+    unresolved = used_areas - exported_areas
+    if unresolved:
+        errors["areas"] = f"unresolved_area_references:{len(unresolved)}"
+    # Label relationships are technical inventory evidence too; missing
+    # definitions can silently break site segmentation and Basic dashboards.
+    exported_labels = {r["label_id"] for r in results if r["kind"] == "label"}
+    used_labels = {label for r in results if r["kind"] in
+                   ("integration_entry", "device", "entity", "area")
+                   for label in r.get("labels", [])}
+    unresolved_labels = used_labels - exported_labels
+    if unresolved_labels:
+        errors["labels"] = f"unresolved_label_references:{len(unresolved_labels)}"
+    # Redaction must not produce duplicate downstream technical join keys.
+    seen: set[tuple[str, str]] = set()
+    for row in results:
+        identity = (str(row["kind"]), str(row["key"]))
+        if identity in seen:
+            errors["row_identity"] = "duplicate_export_row_keys"
+            break
+        seen.add(identity)
     results.sort(key=lambda row: (row["kind"], str(row["key"])))
     total = len(results)
     if total > MAX_ROWS:
         errors["row_limit"] = f"site_export_row_cap_exceeded:{total}>{MAX_ROWS}"
         results = results[:MAX_ROWS]
     timestamp = captured_at or datetime.now(timezone.utc).isoformat()
+    entity_rows = [row for row in results if row["kind"] == "entity"]
+    coverage = {
+        "entities_by_availability": {
+            state: sum(row["availability_at_capture"] == state for row in entity_rows)
+            for state in ("available", "temporarily_unavailable", "missing")
+        },
+        "entities_by_registry_provenance": {
+            state: sum(row["registry_provenance"] == state for row in entity_rows)
+            for state in ("FOUNDATION_CONFIG_ENTRY", "REGISTRY_NO_CONFIG_ENTRY", "STATE_ONLY")
+        },
+        "disabled_entities": sum(bool(row["disabled_by"]) for row in entity_rows),
+        "entity_aliases": sum(bool(row["entity_id_redacted"]) for row in entity_rows),
+        "unresolved_area_references": len(unresolved),
+        "unresolved_label_references": len(unresolved_labels),
+        "zero_entity_config_entries": sum(row["entity_count"] == 0 for row in results
+                                         if row["kind"] == "integration_entry"),
+        "zero_entity_devices": sum(row["entity_count"] == 0 for row in results
+                                   if row["kind"] == "device"),
+    }
     rows_encoded = json.dumps(results, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     digest = hashlib.sha256(rows_encoded.encode("utf-8")).hexdigest()
     return {
         "contract_id": CONTRACT, "schema_version": 1,
         "generated_at": timestamp, "ha_version": clean(source.get("ha_version")),
-        "status": "COMPLETE_TECHNICAL" if not any(k in errors for k in REQ) and total <= MAX_ROWS else "PARTIAL_HOLD",
+        "status": "COMPLETE_TECHNICAL" if not any(k in errors for k in (*REQ, "row_identity")) and not unresolved_labels and total <= MAX_ROWS else "PARTIAL_HOLD",
         "source_errors": dict(sorted(errors.items())),
         "source_completeness": {k: k not in errors for k in REQ},
         "row_count": len(results), "actual_row_count": total,
+        "coverage": coverage,
+        "scope": {
+            "complete_claim": "GENERIC_HA_REGISTRIES_AND_KNOWN_TECHNICAL_SURFACES",
+            "not_collected": [
+                "integration_private_api_endpoints",
+                "device_automation_action_schemas",
+                "dashboard_storage_views",
+                "recorder_history",
+                "physical_command_validation",
+            ],
+            "meaning": "Technical structure only; not domain-feature or physical acceptance",
+        },
         "fingerprint": digest, "snapshot_id": hashlib.sha256(
             (digest + "/" + timestamp).encode("utf-8")).hexdigest()[:24],
         "rows": results,
