@@ -27,6 +27,8 @@ from .wizard import (
     _integration_label,
 )
 from .wizard_state import concept_target_id
+from .discovery.site_inventory_export import build_site_inventory, capture_native_site
+from .const import SITE_INVENTORY_EXPORT_CACHE
 
 FOUNDATION_SETTINGS = "__foundation_settings__"
 
@@ -99,7 +101,51 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
                 "configure_domain",
                 "remove_domain_select",
                 "foundation_settings",
+                "site_discovery",
             ],
+        )
+
+    async def async_step_site_discovery(self, user_input=None):
+        """One explicit HA-native inventory operation; no options Save or reload."""
+        if user_input is not None:
+            if not bool(user_input.get("confirm_capture", False)):
+                return self.async_show_form(
+                    step_id="site_discovery",
+                    data_schema=vol.Schema({vol.Required("confirm_capture", default=False): bool}),
+                    errors={"base": "confirm_capture"},
+                )
+            export = build_site_inventory(capture_native_site(self.hass))
+            self.hass.data[SITE_INVENTORY_EXPORT_CACHE] = export
+            return await self.async_step_site_discovery_result()
+        return self.async_show_form(
+            step_id="site_discovery",
+            data_schema=vol.Schema({vol.Required("confirm_capture", default=False): bool}),
+        )
+
+    async def async_step_site_discovery_result(self, user_input=None):
+        """Display the result, then end without rewriting persisted configuration."""
+        if user_input is not None:
+            return self.async_abort(reason="site_discovery_complete")
+        export = self.hass.data.get(SITE_INVENTORY_EXPORT_CACHE)
+        if not isinstance(export, dict):
+            return self.async_abort(reason="site_discovery_missing")
+        counts = {}
+        for row in export["rows"]:
+            kind = str(row.get("kind") or "other")
+            counts[kind] = counts.get(kind, 0) + 1
+        return self.async_show_form(
+            step_id="site_discovery_result",
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "status": str(export["status"]),
+                "integrations": str(counts.get("integration_entry", 0)),
+                "devices": str(counts.get("device", 0)),
+                "entities": str(counts.get("entity", 0)),
+                "capabilities": str(counts.get("framework_capability", 0)),
+                "row_count": str(export["row_count"]),
+                "errors": ", ".join(sorted(export["source_errors"])) or "none",
+                "fingerprint": str(export["fingerprint"][:16]),
+            },
         )
 
     async def async_step_configure_domain(self, user_input=None):

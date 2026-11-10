@@ -1,8 +1,8 @@
 {
   "source_repository": "npinguin/rhi-foundation",
-  "source_commit": "fcf1c803ab807a34559fa5fb10e87c0ec64bbbb1",
-  "source_release": "F1.8.48",
-  "manifest_version": "1.8.48",
+  "source_commit": "8a57ecd39f7e8bc42fdfc7924f5e5f9ed1a71678",
+  "source_release": "F1.8.49",
+  "manifest_version": "1.8.49",
   "channel": "candidate",
   "approved_release": false,
   "shared_baseline": "1.8.5",

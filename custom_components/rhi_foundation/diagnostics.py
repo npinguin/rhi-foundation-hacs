@@ -7,7 +7,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, RELEASE, SHARED_BASELINE_VERSION
+from .const import DOMAIN, RELEASE, SHARED_BASELINE_VERSION, SITE_INVENTORY_EXPORT_CACHE
 from .supervision import aggregate_system_supervision, read_domain_supervisory_statuses
 
 
@@ -15,6 +15,18 @@ async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
     """Return the authoritative troubleshooting payload; sensors remain summaries."""
+    # After an explicit Configure > Site Discovery capture, Home Assistant's
+    # native "Download diagnostics" provides the full allowlisted JSON export.
+    # This temporary export-only view deliberately excludes the normal
+    # diagnostics configuration/data/options, which may contain credentials.
+    export = hass.data.get(SITE_INVENTORY_EXPORT_CACHE)
+    if isinstance(export, dict):
+        return {
+            "identity": {"integration_domain": DOMAIN, "release": RELEASE,
+                         "shared_baseline_version": SHARED_BASELINE_VERSION},
+            "site_inventory_export": deepcopy(export),
+            "notice": "PRIVATE_SITE_ENGINEERING_DATA_DO_NOT_SHARE_PUBLICLY",
+        }
     runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     snapshot = deepcopy(runtime.get("snapshot", {}))
 

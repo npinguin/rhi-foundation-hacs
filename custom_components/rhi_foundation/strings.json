@@ -242,11 +242,12 @@
       },
       "init": {
         "title": "Foundation settings",
-        "description": "Choose one task. Foundation changes only the selected technical configuration scope.",
+        "description": "Choose a task. Domain configuration changes only when explicitly saved. Site discovery is read-only and keeps your existing selections.",
         "menu_options": {
           "configure_domain": "Configure a domain",
           "remove_domain_select": "Remove a domain",
-          "foundation_settings": "Advanced Foundation settings"
+          "foundation_settings": "Advanced Foundation settings",
+          "site_discovery": "Site Discovery — scan technical sources"
         }
       },
       "configure_domain": {
@@ -262,6 +263,18 @@
         "data": {
           "domain_id": "Configured domain"
         }
+      },
+      "site_discovery": {
+        "title": "Site Discovery › Capture",
+        "description": "Capture a full read-only technical inventory of this Home Assistant installation for Basic and Premium engineering. This scans configured integrations, devices, entities, areas and available technical capabilities. It does NOT execute commands, change configuration or restart HA. The result is temporary and kept in HA memory until integration reload/restart. Download the private JSON via the integration's three-dot menu › Download diagnostics after the scan.",
+        "data": {
+          "confirm_capture": "I understand this is a read-only technical snapshot; start the inventory now"
+        }
+      },
+      "site_discovery_result": {
+        "title": "Site Discovery › Result",
+        "description": "Status: {status}\n\nIntegrations: {integrations} · Devices: {devices} · Entities: {entities} · Framework capabilities: {capabilities} · Total records: {row_count}\n\nSource errors: {errors}\nSnapshot fingerprint: {fingerprint}\n\n**Next: close this dialog, open the three-dot menu on the RHI Foundation integration and choose Download diagnostics.** The downloaded JSON includes the site_inventory_export object; keep it private and never share it publicly. A partial status remains HOLD until missing sources are investigated. No configuration change or restart has occurred.",
+        "data": {}
       }
     },
     "error": {
@@ -273,10 +286,13 @@
       "foundation_settings_cannot_be_removed": "Foundation technical settings can be changed but not removed as a domain.",
       "select_instance": "Choose a configured logical device.",
       "minimum_not_satisfied": "The selected measurements do not yet form a valid minimum configuration. Complete one of the required combinations, or go back and leave this concept unconfigured.",
-      "entity_unavailable": "The selected Home Assistant entity can no longer be resolved. Review this mapping and choose an available compatible source."
+      "entity_unavailable": "The selected Home Assistant entity can no longer be resolved. Review this mapping and choose an available compatible source.",
+      "confirm_capture": "Confirm the read-only scan before continuing."
     },
     "abort": {
-      "no_configured_domains_to_remove": "There are no configured Foundation domain mappings to remove."
+      "no_configured_domains_to_remove": "There are no configured Foundation domain mappings to remove.",
+      "site_discovery_complete": "Inventory captured. Use the RHI Foundation integration's three-dot menu › Download diagnostics for the JSON file; the scan did not save settings.",
+      "site_discovery_missing": "No inventory capture is available. Run Site Discovery again."
     }
   }
 }

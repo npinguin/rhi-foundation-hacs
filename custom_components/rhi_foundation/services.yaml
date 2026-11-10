@@ -36,3 +36,38 @@ get_publication_inventory:
           min: 1
           max: 100
           mode: box
+
+get_site_inventory:
+  name: Get technical site inventory
+  description: Admin-only, on-demand, read-only full-site technical inventory. Request refresh=true to capture; use returned snapshot_id for subsequent pages. Does not select source bindings or authorize actions.
+  fields:
+    refresh:
+      name: Capture a new site snapshot
+      required: false
+      default: false
+      selector:
+        boolean:
+    snapshot_id:
+      name: Existing snapshot ID
+      description: Required for subsequent pages when refresh=false.
+      required: false
+      selector:
+        text:
+    offset:
+      name: Page offset
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 50000
+          mode: box
+    limit:
+      name: Page size
+      required: false
+      default: 100
+      selector:
+        number:
+          min: 1
+          max: 200
+          mode: box

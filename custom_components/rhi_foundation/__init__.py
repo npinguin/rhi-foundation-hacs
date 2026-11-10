@@ -23,10 +23,15 @@ from .const import (
     FOUNDATION_DISPATCH_SIGNAL,
     FOUNDATION_REFRESH_SERVICE,
     FOUNDATION_PUBLICATION_INVENTORY_SERVICE,
+    FOUNDATION_SITE_EXPORT_SERVICE,
+    SITE_INVENTORY_EXPORT_CACHE,
     RELEASE,
     PLATFORMS,
 )
 from .runtime import async_refresh_snapshot, async_refresh_supervision_snapshot, remove_published_inputs
+from .discovery.site_inventory_export import (
+    build_site_inventory, capture_native_site, site_inventory_page,
+)
 from .wizard_state import canonicalize_multi_mapping_shape
 from .publication_inventory import (
     FoundationPublicationInventoryProvider,
@@ -235,6 +240,46 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             }), supports_response=SupportsResponse.ONLY,
         )
 
+    # Site-wide discovery is an explicit, admin-only engineering operation.
+    # It never participates in normal Foundation refresh/handoff or telemetry.
+    async def _site_inventory_service(call: ServiceCall) -> dict[str, Any]:
+        actor_id = call.context.user_id
+        actor = await hass.auth.async_get_user(actor_id) if actor_id else None
+        if actor is None or not actor.is_admin:
+            raise PermissionError("Foundation site export requires an authenticated HA administrator")
+        cache_key = SITE_INVENTORY_EXPORT_CACHE
+        refresh = bool(call.data.get("refresh", False))
+        cache = hass.data.get(cache_key)
+        if refresh:
+            export = build_site_inventory(capture_native_site(hass))
+            hass.data[cache_key] = export
+        elif not isinstance(cache, dict):
+            raise ValueError("site_inventory_not_captured_call_refresh_true_first")
+        else:
+            export = cache
+        expected = (export["snapshot_id"] if refresh else call.data.get("snapshot_id"))
+        if not expected:
+            raise ValueError("site_inventory_snapshot_id_required")
+        return site_inventory_page(
+            export,
+            offset=call.data.get("offset", 0),
+            limit=call.data.get("limit", 100),
+            snapshot_id=expected,
+        )
+
+    if not hass.services.has_service(DOMAIN, FOUNDATION_SITE_EXPORT_SERVICE):
+        import voluptuous as vol
+        hass.services.async_register(
+            DOMAIN, FOUNDATION_SITE_EXPORT_SERVICE, _site_inventory_service,
+            schema=vol.Schema({
+                vol.Optional("refresh", default=False): bool,
+                vol.Optional("snapshot_id"): str,
+                vol.Optional("offset", default=0): vol.All(vol.Coerce(int), vol.Range(min=0)),
+                vol.Optional("limit", default=100): vol.All(vol.Coerce(int), vol.Range(min=1, max=200)),
+            }),
+            supports_response=SupportsResponse.ONLY,
+        )
+
     if not hass.services.has_service(DOMAIN, FOUNDATION_REFRESH_SERVICE):
         hass.services.async_register(
             DOMAIN,
@@ -279,6 +324,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.services.async_remove(DOMAIN, FOUNDATION_REFRESH_SERVICE)
         if hass.services.has_service(DOMAIN, FOUNDATION_PUBLICATION_INVENTORY_SERVICE):
             hass.services.async_remove(DOMAIN, FOUNDATION_PUBLICATION_INVENTORY_SERVICE)
+        if hass.services.has_service(DOMAIN, FOUNDATION_SITE_EXPORT_SERVICE):
+            hass.services.async_remove(DOMAIN, FOUNDATION_SITE_EXPORT_SERVICE)
+        hass.data.pop(SITE_INVENTORY_EXPORT_CACHE, None)
     return unloaded
 
 
