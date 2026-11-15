@@ -1,6 +1,6 @@
 {
   "domain": "rhi_foundation",
-  "name": "Robotix Home Intelligence - Foundation Module",
+  "name": "Robotix Foundation",
   "codeowners": [
     "@npinguin"
   ],
@@ -11,5 +11,5 @@
   "issue_tracker": "https://github.com/npinguin/rhi-foundation/issues",
   "requirements": [],
   "single_config_entry": true,
-  "version": "1.8.51"
+  "version": "1.8.52"
 }
