@@ -25,6 +25,9 @@ jobs:
           assert p['status']=='PROTECTED_TEST_CANDIDATE' and not p['approved_release']
           assert set(p['platforms'])=={'x86_64','aarch64'}
           assert json.loads((root/'manifest.json').read_text())['version']==p['manifest_version']
+          name = json.loads((root/'manifest.json').read_text())['name']
+          assert name == json.loads(Path('hacs.json').read_text())['name'] == json.loads((root/'strings.json').read_text())['title'] == 'Robotix Foundation'
+          assert Path('README.md').read_text().splitlines()[0] == '# Robotix Foundation'
           files={f.relative_to(root).as_posix():hashlib.sha256(f.read_bytes()).hexdigest() for f in root.rglob('*') if f.is_file()}
           assert files==p['runtime_files']
           assert {k for k in files if k.endswith('.py')}==set(p['readable_native_adapters'])

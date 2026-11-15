@@ -1,9 +1,9 @@
 {
   "status": "PROTECTED_TEST_CANDIDATE",
-  "source_commit": "6c75071733fc3175657499f5891c69d30223ad74",
-  "source_zip_sha256": "673ee1b0b61045a5f104d57991ef45c2ae97f466f1249aa79ef6c6c0089660dc",
-  "protected_zip_sha256": "e20522636817ba73c4aa9b2ef4a1eb6741bfe694ce9bc37c6fd6df466a1cada7",
-  "manifest_version": "1.8.52",
+  "source_commit": "ed412c7a10528dd016da76e2d28abe5ab96921a5",
+  "source_zip_sha256": "d403d5178d60b4197dcb28db6b5a178d411c6c268002db7a99114400ddcc3a17",
+  "protected_zip_sha256": "03e07ce3cc4b7adb81816bfc16eed0021305eea03a77f592b05969339fd374f7",
+  "manifest_version": "1.8.53",
   "platforms": {
     "aarch64": {
       "ha_image": "ghcr.io/home-assistant/home-assistant@sha256:6785d1eca68747a524c156faae1b139ed415c07357386ae6fe17291986e59e82",
@@ -11,7 +11,7 @@
       "extension_suffix": ".cpython-314-aarch64-linux-musl.so",
       "cython": "3.2.9",
       "compiler": "cc (Alpine 15.2.0) 15.2.0",
-      "protected_zip_sha256": "f99a151fb34e24b5f28b03097c1ae6a490719c03c5310712e647647f7f7f4a0d"
+      "protected_zip_sha256": "9e1fad899887829806527c193f935bc5454729b8e64c7bc54922ca80edabcf04"
     },
     "x86_64": {
       "ha_image": "ghcr.io/home-assistant/home-assistant@sha256:6785d1eca68747a524c156faae1b139ed415c07357386ae6fe17291986e59e82",
@@ -19,7 +19,7 @@
       "extension_suffix": ".cpython-314-x86_64-linux-musl.so",
       "cython": "3.2.9",
       "compiler": "cc (Alpine 15.2.0) 15.2.0",
-      "protected_zip_sha256": "e5555f3d928d21405f225a2f724f09895ad9eba510b6f82badd6cf027363e219"
+      "protected_zip_sha256": "16d1d9eb6007041a3e92019930e3af522ed3846c36ef248a9cf9fd42bce0f259"
     }
   },
   "protected_modules": [
@@ -88,7 +88,7 @@
     "configuration_surfaces.cpython-314-x86_64-linux-musl.so": "c16fa43647dfce0170558bf24f8a59bb6a2ccdb9f55aa1be6a90b22f831afedb",
     "configured_surfaces.cpython-314-aarch64-linux-musl.so": "26428d55cd80ce0c945af743aae4701cd6edc05db086eea83fef7d6660553f87",
     "configured_surfaces.cpython-314-x86_64-linux-musl.so": "7fe9a18005a942650542dbb334e3fda25f4ed9117fe91c95c16788caf41a2d9f",
-    "const.py": "582498c315d43090eb37d512ccce60b87247fcf82238e937f9a1d431957c95e1",
+    "const.py": "50194e0fcf7e47997094b5c51d8d81f50d28b0e989a4e53184d529f5c1207bb7",
     "contracts/serialization.cpython-314-aarch64-linux-musl.so": "c5a960f314ad641670c6acbf7c3d7acc61f187be3350fca2eed3b3f7425db3d2",
     "contracts/serialization.cpython-314-x86_64-linux-musl.so": "88230dabf50a6ce651fef2e28981f453980f78428c4ce3b9def1675785089118",
     "diagnostics.py": "6cd22d181d32111c27575d7392570dde2c1b4bda2975b455b2baa512707f8609",
@@ -112,7 +112,7 @@
     "health.cpython-314-x86_64-linux-musl.so": "f3106739d52735a598dc878f3bda777336b302d9f1b7136f0bdd0186b8ca01c4",
     "icon.png": "8925e28f6d3e2eafde22a14896e58ec292bfddd1ae58d881a6b4de1ac1c30bc2",
     "logo.png": "960321934daedcd75e08e7146d4f983dae0081e910d00750793053205a43d3ba",
-    "manifest.json": "aa0d7b504b7f87aefa3e9369ccd9f9e5641d7a926696843e1a7d4ab0633fa182",
+    "manifest.json": "06fea616364b6e5c7b2e15fac23e4647d1b70c2826204d02c5843fb29ea0000f",
     "matching.cpython-314-aarch64-linux-musl.so": "7dff925854ea59906d95d6227e01e66cb304368ae64b930b86bba2648d7f331b",
     "matching.cpython-314-x86_64-linux-musl.so": "fc33fa06177251a584b466a420141875d7c3932eee7ec3bee5c49cb2bbc13c7b",
     "models/capability.cpython-314-aarch64-linux-musl.so": "b72d426164eadc514add764da02137222e558d56c5caf4e31f77145706c9b97d",

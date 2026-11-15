@@ -1,6 +1,6 @@
-# RHI Foundation
+# Robotix Foundation
 
-Foundation provides discovery, device identity and configuration support for RHI integrations.
+Robotix Foundation provides discovery, device identity and configuration support for RHI integrations.
 
 ## Installation
 
