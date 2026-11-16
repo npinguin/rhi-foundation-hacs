@@ -3,8 +3,8 @@ from __future__ import annotations
 
 DOMAIN = "rhi_foundation"
 MODULE_DISPLAY_NAME = "Robotix Foundation"
-RELEASE = "F1.8.53"
-RELEASE_NAME = "PRODUCT_NAMING_CLOSURE"
+RELEASE = "F1.8.54"
+RELEASE_NAME = "DISCOVERY_LIFECYCLE"
 SHARED_BASELINE_ID = "RHI_SHARED_ARCHITECTURE_BASELINE"
 SHARED_BASELINE_VERSION = "1.8.5"
 EXECUTION_MODEL = "configuration_time_active_runtime_passive"

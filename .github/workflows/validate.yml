@@ -22,7 +22,8 @@ jobs:
           from pathlib import Path
           root=Path('custom_components/rhi_foundation')
           p=json.loads(Path('DISTRIBUTION_SOURCE.json').read_text())
-          assert p['status']=='PROTECTED_TEST_CANDIDATE' and not p['approved_release']
+          assert p['status']=='PROTECTED_TEST_CANDIDATE' and p['approved_release'] is False
+          assert set(p)=={'status','approved_release','source_commit','manifest_version','protected_zip_sha256','runtime_files','protected_modules','readable_native_adapters','platforms','branding_files'}
           assert set(p['platforms'])=={'x86_64','aarch64'}
           assert json.loads((root/'manifest.json').read_text())['version']==p['manifest_version']
           name = json.loads((root/'manifest.json').read_text())['name']
@@ -38,5 +39,11 @@ jobs:
           assert set(branding_files)=={f.name for f in (root/'brand').iterdir() if f.is_file()}
           for f in (root/'brand').iterdir():
               assert f.read_bytes()==(Path('brand')/f.name).read_bytes(), 'HACS root branding differs'
+          import subprocess
+          tracked=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          expected={'README.md','LICENSE','hacs.json','DISTRIBUTION_SOURCE.json','.github/workflows/validate.yml'}
+          expected.update(str(f) for directory in (root,Path('brand')) for f in directory.rglob('*') if f.is_file())
+          assert set(filter(None,tracked))==expected
+          assert {k for k in files if k.endswith('.so')}=={name.removesuffix('.py')+suffix for name in p['protected_modules'] for suffix in (row['extension_suffix'] for row in p['platforms'].values())}
           print('Exact protected runtime PASS')
           PY

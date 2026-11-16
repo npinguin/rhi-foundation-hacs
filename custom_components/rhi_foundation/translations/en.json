@@ -3,11 +3,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "Choose RHI domain",
-        "description": "{ownership}\n\nAvailable domains: {domain_count}",
-        "data": {
-          "domain_id": "Domain to configure"
-        }
+        "title": "Set up Robotix Foundation",
+        "description": "Install Foundation for technical discovery. No devices or domains are selected automatically. Configure a domain later in Foundation settings when its provider is available."
       },
       "mode": {
         "title": "Choose configuration mode",
@@ -292,7 +289,8 @@
     "abort": {
       "no_configured_domains_to_remove": "There are no configured Foundation domain mappings to remove.",
       "site_discovery_complete": "Inventory captured. Use the RHI Foundation integration's three-dot menu › Download diagnostics for the JSON file; the scan did not save settings.",
-      "site_discovery_missing": "No inventory capture is available. Run Site Discovery again."
+      "site_discovery_missing": "No inventory capture is available. Run Site Discovery again.",
+      "no_configurable_domains": "No domain provider is available yet. Install or enable a compatible provider, then reopen Foundation settings. Site Discovery remains available without a domain provider."
     }
   }
 }

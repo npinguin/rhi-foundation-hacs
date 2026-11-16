@@ -49,34 +49,14 @@ def _domain_choices(records: list[dict[str, Any]], mappings: dict[str, Any]) -> 
 
 
 async def _scoped_initial_user(self: _WizardConfigFlow, user_input=None):
-    """Configure one domain on first Foundation setup instead of all domains."""
+    """Install independently; explicit domain commissioning remains in Options."""
     if not getattr(self, "_initialized", False):
         self._initialize_state()
-
-    await async_refresh_framework_resource_providers(self.hass)
-    records = _domain_records(self.hass, self._concept_mappings)
-    if not records:
-        return await self.async_step_no_configurable_domains()
-
-    choices = _domain_choices(records, self._concept_mappings)
     if user_input is not None:
-        domain_id = str(user_input.get("domain_id") or "")
-        selected = next((item for item in records if str(item["domain"]) == domain_id), None)
-        if selected is not None:
-            self._domain_queue = [selected]
-            self._domain_index = 0
-            self._developer_mode = False
-            return await self.async_step_domain_intro()
-
-    return self.async_show_form(
-        step_id="user",
-        data_schema=vol.Schema({vol.Required("domain_id"): vol.In(choices)}),
-        description_placeholders={
-            "domain_count": str(len(records)),
-            "ownership": "Choose one domain. Foundation configures technical intent only; domain semantics remain owned by that domain.",
-        },
-    )
-
+        # Empty technical intent is deliberate. The existing setup lifecycle
+        # discovers providers; discovery alone cannot approve a device mapping.
+        return self._finish_flow()
+    return self.async_show_form(step_id="user", data_schema=vol.Schema({}))
 
 class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow):
     """Configure, reconfigure or remove exactly one Foundation-owned scope."""
@@ -150,6 +130,8 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
 
     async def async_step_configure_domain(self, user_input=None):
         choices = _domain_choices(self._records, self._concept_mappings)
+        if not choices:
+            return self.async_abort(reason="no_configurable_domains")
         errors: dict[str, str] = {}
         if user_input is not None:
             domain_id = str(user_input.get("domain_id") or "")
