@@ -5,7 +5,8 @@ import asyncio
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsResponse, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
@@ -130,32 +131,35 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return "coalesced:" + "|".join(visible) + suffix
 
     def _ensure_structural_refresh_task() -> None:
-        if data.get("structural_refresh_shutdown"):
+        if data.get("structural_refresh_shutdown") or hass.is_stopping:
             return
         task = data.get("structural_refresh_task")
         if task is not None and not task.done():
             return
 
         async def _run_once() -> None:
-            await asyncio.sleep(0)
-            pending = data.setdefault("pending_structural_refresh_reasons", set())
-            reasons = set(pending)
-            pending.clear()
-            if not reasons or data.get("structural_refresh_shutdown"):
-                return
-            health = data.setdefault("runtime_health", {})
-            health["structural_refresh_runs"] = int(health.get("structural_refresh_runs", 0)) + 1
             try:
+                await asyncio.sleep(0)
+                pending = data["pending_structural_refresh_reasons"]
+                if not pending or data["structural_refresh_shutdown"] or hass.is_stopping:
+                    return
+                reasons = set(pending)
+                pending.clear()
+                data["runtime_health"]["structural_refresh_runs"] += 1
                 await _refresh(_combined_reason(reasons))
             finally:
                 data["structural_refresh_task"] = None
-                if data.get("pending_structural_refresh_reasons") and not data.get("structural_refresh_shutdown"):
+                # Only actual pending structural events can request a next batch.
+                if data["pending_structural_refresh_reasons"]:
                     _ensure_structural_refresh_task()
 
-        data["structural_refresh_task"] = hass.async_create_task(_run_once())
+        data["structural_refresh_task"] = entry.async_create_task(
+            hass, _run_once(), "Foundation structural refresh", eager_start=False
+        )
 
+    @callback
     def _request_structural_refresh(reason: str) -> None:
-        if data.get("structural_refresh_shutdown"):
+        if data.get("structural_refresh_shutdown") or hass.is_stopping:
             return
         health = data.setdefault("runtime_health", {})
         health["structural_refresh_requests"] = int(health.get("structural_refresh_requests", 0)) + 1
@@ -169,6 +173,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         pending.add(reason)
         _ensure_structural_refresh_task()
 
+    @callback
     def _cancel_pending_structural_refresh() -> None:
         data["structural_refresh_shutdown"] = True
         data.setdefault("pending_structural_refresh_reasons", set()).clear()
@@ -180,7 +185,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data["cancel_pending_structural_refresh"] = _cancel_pending_structural_refresh
     data["request_structural_refresh"] = _request_structural_refresh
 
-    async def _on_publication_changed(event: Event) -> None:
+    entry.async_on_unload(_cancel_pending_structural_refresh)
+
+    @callback
+    def _on_stop(event: Event) -> None:
+        _cancel_pending_structural_refresh()
+
+    entry.async_on_unload(hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _on_stop))
+
+    @callback
+    def _on_publication_changed(event: Event) -> None:
         _request_structural_refresh(
             f"domain_publication:{event.data.get('reason', 'changed')}:"
             f"{event.data.get('publisher_domain', 'unknown')}"
@@ -201,12 +215,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _on_publication_changed,
     )
     entry.async_on_unload(unsub_publication)
-    unsub_framework = hass.bus.async_listen(
-        FRAMEWORK_RESOURCE_PROVIDERS_CHANGED_EVENT,
-        lambda event: _request_structural_refresh(
+    # HA dispatches an unmarked synchronous listener in its executor.
+    # Structural requests and task creation must stay on the HA event loop.
+    @callback
+    def _on_framework_changed(event: Event) -> None:
+        _request_structural_refresh(
             f"framework_provider:{event.data.get('reason', 'changed')}:"
             f"{event.data.get('integration_domain', 'unknown')}"
-        ),
+        )
+
+    unsub_framework = hass.bus.async_listen(
+        FRAMEWORK_RESOURCE_PROVIDERS_CHANGED_EVENT, _on_framework_changed,
     )
     entry.async_on_unload(unsub_framework)
     unsub_supervision = hass.bus.async_listen(
@@ -311,8 +330,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload runtime resources without pretending persisted technical intent was deleted."""
     data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     cancel_pending = data.get("cancel_pending_structural_refresh")
+    task = data.get("structural_refresh_task")
     if callable(cancel_pending):
         cancel_pending()
+    if task is not None:
+        # Drain cancellation before releasing entry data/services.
+        await asyncio.gather(task, return_exceptions=True)
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         # Keep the authoritative SelectedDomainBuildInput slice across ordinary
@@ -327,6 +350,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if hass.services.has_service(DOMAIN, FOUNDATION_SITE_EXPORT_SERVICE):
             hass.services.async_remove(DOMAIN, FOUNDATION_SITE_EXPORT_SERVICE)
         hass.data.pop(SITE_INVENTORY_EXPORT_CACHE, None)
+    else:
+        # A failed unload retains the loaded entry and its existing listeners.
+        data["structural_refresh_shutdown"] = False
     return unloaded
 
 
