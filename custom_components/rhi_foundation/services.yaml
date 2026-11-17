@@ -8,14 +8,10 @@ get_publication_inventory:
   fields:
     domain_id:
       name: Domain
-      description: Owning domain module.
+      description: Exact registered owning domain ID (for example rhi_energy). An absent provider is reported as unavailable.
       required: true
       selector:
-        select:
-          options:
-            - rhi_foundation
-            - rhi_energy
-            - rhi_mobility
+        text:
     offset:
       name: Offset
       description: Zero-based starting record.

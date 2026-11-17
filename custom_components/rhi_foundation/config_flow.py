@@ -6,6 +6,7 @@ remain small and explicit without duplicating proven matching UI logic.
 from __future__ import annotations
 
 from collections import defaultdict
+from copy import deepcopy
 from typing import Any
 
 import voluptuous as vol
@@ -37,8 +38,8 @@ def _domain_is_available(record: dict[str, Any]) -> bool:
     return any(bool(concept.get("specs")) for concept in record.get("concepts", []))
 
 
-def _domain_choices(records: list[dict[str, Any]], mappings: dict[str, Any]) -> dict[str, str]:
-    configured = configured_domains({CONF_CONCEPT_MAPPINGS: mappings})
+def _domain_choices(records: list[dict[str, Any]], mappings: dict[str, Any], surfaces: dict[str, Any] | None = None) -> dict[str, str]:
+    configured = configured_domains({CONF_CONCEPT_MAPPINGS: mappings, CONF_CONFIGURATION_SURFACE_SELECTIONS: surfaces or {}})
     choices: dict[str, str] = {}
     for record in records:
         domain_id = str(record["domain"])
@@ -70,11 +71,12 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
             defaults = effective_entry_configuration(
                 self.config_entry.data, self.config_entry.options
             )
-            self._base_config = defaults
+            # Freeze persisted intent separately from editable nested wizard state.
+            self._base_config = deepcopy(defaults)
             self._selected_domain_id = None
-            self._initialize_state(defaults)
+            self._initialize_state(deepcopy(defaults))
         await async_refresh_framework_resource_providers(self.hass)
-        self._records = _domain_records(self.hass, self._concept_mappings)
+        self._records = _domain_records(self.hass, self._concept_mappings, self._configuration_surface_selections)
         return self.async_show_menu(
             step_id="init",
             menu_options=[
@@ -129,7 +131,7 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
         )
 
     async def async_step_configure_domain(self, user_input=None):
-        choices = _domain_choices(self._records, self._concept_mappings)
+        choices = _domain_choices(self._records, self._concept_mappings, self._configuration_surface_selections)
         if not choices:
             return self.async_abort(reason="no_configurable_domains")
         errors: dict[str, str] = {}
@@ -158,7 +160,7 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
         choices = {
             domain_id: label
             for domain_id, label in _domain_choices(
-                self._records, self._concept_mappings
+                self._records, self._concept_mappings, self._configuration_surface_selections
             ).items()
             if domain_id in configured
         }
@@ -203,15 +205,47 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
         )
 
     async def async_step_domain_intro(self, user_input=None):
-        """Run the proven concept wizard but stop after the selected domain."""
-        if self._domain_index >= len(self._domain_queue):
-            return await self.async_step_review()
-        return await super().async_step_domain_intro(user_input)
+        """Edit one published concept at a time, then review the whole domain."""
+        domain = self._current_domain()
+        choices = {"__review__": "Review and save"}
+        for concept in domain["concepts"]:
+            if concept["specs"]:
+                choices[concept["concept"]] = concept["label"]
+        errors = {}
+        if user_input is not None:
+            selected = user_input.get("concept_id")
+            if selected == "__review__":
+                return await self.async_step_review()
+            if selected in choices:
+                self._concept_queue = [item for item in domain["concepts"] if item["concept"] == selected]
+                self._concept_index = 0
+                return await self.async_step_concept_intro()
+            errors["base"] = "invalid_domain"
+        return self.async_show_form(
+            step_id="domain_intro",
+            data_schema=vol.Schema({vol.Required("concept_id", default="__review__"): vol.In(choices)}),
+            errors=errors,
+            description_placeholders={
+                "description": domain.get("description", ""),
+                "selection_guidance": domain.get("selection_guidance", ""),
+                "concepts": "\n".join(
+                    f"- {item['label']}" + (" (provider unavailable; preserved)" if not item["specs"] else "")
+                    for item in domain["concepts"]
+                ),
+            },
+        )
+
+    async def async_step_concept_intro(self, user_input=None):
+        if self._concept_index >= len(self._concept_queue):
+            return await self.async_step_domain_intro()
+        return await super().async_step_concept_intro(user_input)
 
     async def async_step_remove_domain(self, user_input=None):
         domain_id = str(self._selected_domain_id or "")
         if user_input is not None:
             if bool(user_input.get("confirm_remove", False)):
+                if not self._configuration_is_current():
+                    return self.async_abort(reason="configuration_changed")
                 cleaned = remove_domain_configuration(self._base_config, domain_id=domain_id)
                 return self.async_create_entry(title="", data=cleaned)
             return await self.async_step_remove_domain_select()
@@ -308,7 +342,16 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
             description_placeholders={"review_summary": summary},
         )
 
+    def _configuration_is_current(self) -> bool:
+        """Reject stale transactions, including concurrent producer removal."""
+        current = effective_entry_configuration(
+            self.config_entry.data, self.config_entry.options
+        )
+        return current == self._base_config
+
     def _finish_flow(self):
+        if not self._configuration_is_current():
+            return self.async_abort(reason="configuration_changed")
         previous_revision = int(self._base_config.get("configuration_revision", 0) or 0)
         if self._selected_domain_id == FOUNDATION_SETTINGS:
             return self.async_create_entry(
@@ -321,7 +364,13 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
             self._base_config,
             edited,
             domain_id=domain_id,
+            next_revision=previous_revision,
         )
+        # Reviewing an unchanged domain is not a structural configuration change.
+        # Preserve the exact persisted overlay (including legacy partial options).
+        if merged == self._base_config:
+            return self.async_create_entry(title="", data=dict(self.config_entry.options))
+        merged["configuration_revision"] = previous_revision + 1
         return self.async_create_entry(title="", data=merged)
 
 

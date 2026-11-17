@@ -103,6 +103,7 @@ async def async_get_config_entry_diagnostics(
         "technical_discovery": {
             "integration_inventory": snapshot.get("integration_inventory", []),
             "capability_catalog": snapshot.get("capability_catalog", {}),
+            "framework_provider_errors": snapshot.get("framework_provider_errors", {}),
         },
         "execution": {
             "generated_at": snapshot.get("generated_at"),

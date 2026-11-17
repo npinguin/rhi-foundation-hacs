@@ -234,7 +234,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_register(
             DOMAIN, FOUNDATION_PUBLICATION_INVENTORY_SERVICE, _inventory_service,
             schema=vol.Schema({
-                vol.Required("domain_id"): vol.In(["rhi_foundation", "rhi_energy", "rhi_mobility"]),
+                vol.Required("domain_id"): vol.All(str, vol.Length(min=1, max=128), vol.Match(r"^[a-z][a-z0-9_]*$")),
                 vol.Optional("offset", default=0): vol.All(vol.Coerce(int), vol.Range(min=0)),
                 vol.Optional("limit", default=50): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
             }), supports_response=SupportsResponse.ONLY,

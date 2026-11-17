@@ -25,14 +25,14 @@
       },
       "concept_integrations": {
         "title": "Choose integrations",
-        "description": "Domain: {domain}\nAvailable installed integrations: {available_count}\n\nAll currently available integrations are selected by default. Deselect only sources you do not want Foundation to use. Leaving all integrations unchecked skips this concept. Existing unavailable selections remain visible so Foundation never silently removes configured intent.",
+        "description": "Domain: {domain}\nAvailable installed integrations: {available_count}\n\nExisting integration selections are preserved. For a new concept, explicitly select the integrations Foundation should use. Leaving all integrations unchecked skips this concept. Existing unavailable selections remain visible so Foundation never silently removes configured intent.",
         "data": {
           "concept_integrations": "Integrations"
         }
       },
       "concept_devices": {
         "title": "Choose devices",
-        "description": "Integration: {integration}\nDevices found: {device_count}\n\nAll concrete devices are selected by default. Deselect devices that do not belong to this concept. All matching remains available only as an explicit review-required scope.",
+        "description": "Integration: {integration}\nDevices found: {device_count}\n\nNew scopes suggest the available devices. Existing specific selections remain unchanged, including unavailable devices. Change them only if you intend to change the scope. All matching remains available only as an explicit review-required scope.",
         "data": {
           "device_filter_mode": "Device filtering",
           "selected_devices": "Specific devices"
@@ -93,7 +93,7 @@
       },
       "surface_fields": {
         "title": "Configure logical device",
-        "description": "{domain} · {concept}\n\n{minimum_summary}\n\nAvailable fields:\n{field_guidance}\n\nChoose the Home Assistant measurements that represent this concept. Foundation keeps stable Entity Registry identity, so entity renames can be resolved without changing the semantic configuration."
+        "description": "{domain} · {concept}\n\n{minimum_summary}\n\nAvailable fields:\n{field_guidance}\n\nChoose the Home Assistant measurements that represent this concept. Foundation keeps stable Entity Registry identity, so entity renames can be resolved without changing the semantic configuration.\n\nUnavailable or retired mappings remain selected for review. Keep, replace or explicitly remove them; retaining a mapping does not make its source available."
       },
       "surface_edit": {
         "title": "Choose logical device to edit",
@@ -117,7 +117,8 @@
       "invalid_domain": "Choose a valid published RHI domain.",
       "select_instance": "Choose a configured logical device.",
       "minimum_not_satisfied": "The selected measurements do not yet form a valid minimum configuration. Complete one of the required combinations, or go back and leave this concept unconfigured.",
-      "entity_unavailable": "The selected Home Assistant entity can no longer be resolved. Review this mapping and choose an available compatible source."
+      "entity_unavailable": "The selected Home Assistant entity can no longer be resolved. Review this mapping and choose an available compatible source.",
+      "surface_identity_changed": "The published logical-device type or cardinality changed. Go back and explicitly remove the old mapping before adding a new one."
     }
   },
   "options": {
@@ -143,8 +144,10 @@
       },
       "domain_intro": {
         "title": "Configure domain",
-        "description": "{description}\n\n{selection_guidance}\n\nPublished concepts:\n{concepts}\n\nEach concept is configured separately: integrations, devices, then review.",
-        "data": {}
+        "description": "{description}\n\n{selection_guidance}\n\nConcepts:\n{concepts}\n\nChoose one concept to edit or review and save. Untouched mappings remain unchanged. Unavailable concepts are preserved.",
+        "data": {
+          "concept_id": "Concept or review"
+        }
       },
       "concept_intro": {
         "title": "Configure concept",
@@ -153,14 +156,14 @@
       },
       "concept_integrations": {
         "title": "Choose integrations",
-        "description": "Domain: {domain}\nAvailable installed integrations: {available_count}\n\nAll currently available integrations are selected by default. Deselect only sources you do not want Foundation to use. Leaving all integrations unchecked skips this concept. Existing unavailable selections remain visible so Foundation never silently removes configured intent.",
+        "description": "Domain: {domain}\nAvailable installed integrations: {available_count}\n\nExisting integration selections are preserved. For a new concept, explicitly select the integrations Foundation should use. Leaving all integrations unchecked skips this concept. Existing unavailable selections remain visible so Foundation never silently removes configured intent.",
         "data": {
           "concept_integrations": "Integrations"
         }
       },
       "concept_devices": {
         "title": "Choose devices",
-        "description": "Integration: {integration}\nDevices found: {device_count}\n\nAll concrete devices are selected by default. Deselect devices that do not belong to this concept. All matching remains available only as an explicit review-required scope.",
+        "description": "Integration: {integration}\nDevices found: {device_count}\n\nNew scopes suggest the available devices. Existing specific selections remain unchanged, including unavailable devices. Change them only if you intend to change the scope. All matching remains available only as an explicit review-required scope.",
         "data": {
           "device_filter_mode": "Device filtering",
           "selected_devices": "Specific devices"
@@ -221,7 +224,7 @@
       },
       "surface_fields": {
         "title": "Configure logical device",
-        "description": "{domain} · {concept}\n\n{minimum_summary}\n\nAvailable fields:\n{field_guidance}\n\nChoose the Home Assistant measurements that represent this concept. Foundation keeps stable Entity Registry identity, so entity renames can be resolved without changing the semantic configuration."
+        "description": "{domain} · {concept}\n\n{minimum_summary}\n\nAvailable fields:\n{field_guidance}\n\nChoose the Home Assistant measurements that represent this concept. Foundation keeps stable Entity Registry identity, so entity renames can be resolved without changing the semantic configuration.\n\nUnavailable or retired mappings remain selected for review. Keep, replace or explicitly remove them; retaining a mapping does not make its source available."
       },
       "surface_edit": {
         "title": "Choose logical device to edit",
@@ -284,9 +287,12 @@
       "select_instance": "Choose a configured logical device.",
       "minimum_not_satisfied": "The selected measurements do not yet form a valid minimum configuration. Complete one of the required combinations, or go back and leave this concept unconfigured.",
       "entity_unavailable": "The selected Home Assistant entity can no longer be resolved. Review this mapping and choose an available compatible source.",
-      "confirm_capture": "Confirm the read-only scan before continuing."
+      "confirm_capture": "Confirm the read-only scan before continuing.",
+      "surface_identity_changed": "The published logical-device type or cardinality changed. Go back and explicitly remove the old mapping before adding a new one."
     },
     "abort": {
+      "source_unavailable": "The selected framework source is no longer available. Nothing was saved. Reopen Foundation settings to review the current sources.",
+      "configuration_changed": "Foundation configuration changed while this dialog was open. Nothing was saved. Reopen Foundation settings to review the current configuration.",
       "no_configured_domains_to_remove": "There are no configured Foundation domain mappings to remove.",
       "site_discovery_complete": "Inventory captured. Use the RHI Foundation integration's three-dot menu › Download diagnostics for the JSON file; the scan did not save settings.",
       "site_discovery_missing": "No inventory capture is available. Run Site Discovery again.",
