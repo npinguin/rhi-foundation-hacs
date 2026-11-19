@@ -5,7 +5,6 @@ remain small and explicit without duplicating proven matching UI logic.
 """
 from __future__ import annotations
 
-from collections import defaultdict
 from copy import deepcopy
 from typing import Any
 
@@ -23,10 +22,12 @@ from .shared_registry import async_refresh_framework_resource_providers
 from .wizard import (
     FoundationWizardMixin,
     RhiFoundationConfigFlow as _WizardConfigFlow,
+    _candidate_devices,
     _domain_label,
     _domain_records,
     _integration_label,
 )
+from .wizard_candidates import entity_source_selection
 from .wizard_state import concept_target_id
 from .discovery.site_inventory_export import build_site_inventory, capture_native_site
 from .const import SITE_INVENTORY_EXPORT_CACHE
@@ -236,9 +237,14 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
         )
 
     async def async_step_concept_intro(self, user_input=None):
+        """Show guidance and source choices together; no read-only extra screen."""
         if self._concept_index >= len(self._concept_queue):
             return await self.async_step_domain_intro()
-        return await super().async_step_concept_intro(user_input)
+        return await self.async_step_concept_source()
+
+    async def async_step_concept_source_back(self, user_input=None):
+        """Return to the domain's concept chooser without clearing mappings."""
+        return await self.async_step_domain_intro()
 
     async def async_step_remove_domain(self, user_input=None):
         domain_id = str(self._selected_domain_id or "")
@@ -266,7 +272,7 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
             return self._finish_flow()
 
         domain_id = str(self._selected_domain_id or "")
-        grouped: dict[tuple[str, str], list[str]] = defaultdict(list)
+        lines: list[str] = []
         review_required: list[str] = []
         for mapping in self._concept_mappings.values():
             if not isinstance(mapping, dict) or str(mapping.get("domain") or "") != domain_id:
@@ -276,17 +282,27 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
             integration = str(mapping.get("integration_domain") or "")
             if not integration:
                 continue
-            grouped[(concept, label)].append(integration)
             selection = self._device_selections.get(
                 concept_target_id(domain_id, concept, integration), {}
             )
-            if selection.get("device_filter_mode") == "all_matching":
-                review_required.append(f"{label} / {_integration_label(integration)}")
-
-        lines = [
-            f"- {label}: " + ", ".join(_integration_label(i) for i in sorted(integrations))
-            for (_concept, label), integrations in sorted(grouped.items())
-        ]
+            source_label = f"{label} / {_integration_label(integration)}"
+            if selection.get("selection_origin") == "integration_scope_no_devices":
+                detail = "integration scope (no separate HA devices)"
+            elif selection.get("device_filter_mode") == "all_matching":
+                detail = "all matching devices or resources"
+                review_required.append(source_label)
+            elif selection.get("device_filter_mode") == "specific_devices":
+                choices = _candidate_devices(self.hass, integration)
+                selected = [
+                    f"{choices[device_id]} ({device_id})"
+                    if device_id in choices else f"{device_id} (currently unavailable)"
+                    for device_id in selection.get("selected_device_ids", [])
+                ]
+                detail = ", ".join(selected) or "no devices selected"
+            else:
+                detail = "device scope unresolved"
+            lines.append(f"- {source_label}: {detail}")
+        lines.sort()
         surface_lines: list[str] = []
         for item in self._configuration_surface_selections.values():
             if not isinstance(item, dict) or str(item.get("domain") or "") != domain_id:
@@ -299,6 +315,14 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
                     continue
                 source = configured.get("source_identity") or {}
                 entity_id = str(source.get("current_entity_id") or "unresolved")
+                registry_id = source.get("entity_registry_id")
+                if registry_id:
+                    current = entity_source_selection(self.hass, str(registry_id))
+                    identity = (current or {}).get("source_identity") or {}
+                    if identity.get("entity_registry_id") == registry_id:
+                        entity_id = str(identity["current_entity_id"])
+                    else:
+                        entity_id += " (currently unavailable)"
                 mappings.append(f"{field_id} → {entity_id}")
             surface_lines.append(
                 f"- {name}: " + (", ".join(mappings) if mappings else "no entity mappings")
@@ -311,7 +335,7 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
                 "Custom logical device mappings:",
                 *(surface_lines or ["- None"]),
                 "",
-                "Needs review because all matching devices were selected:",
+                "Broad scopes explicitly selected (all matching):",
                 *([f"- {item}" for item in review_required] or ["- None"]),
                 "",
                 "Only this domain slice will be committed. Other Foundation domain configuration remains unchanged.",

@@ -203,12 +203,12 @@
       },
       "concept_source": {
         "title": "Choose source",
-        "description": "Choose how {concept} should be configured. You can use an available integration/device, select Home Assistant entities directly, or leave this concept unconfigured.",
+        "description": "{concept}\n\n{description}\n{selection_guidance}\n\nAvailable sources: {available_integrations}\nSelected integrations: {configured_integrations}\nDirect entity mappings: {configured_surfaces}\nPublished but unavailable: {unavailable_integrations}\n\nChoose a source or explicitly leave this concept unconfigured. Changes are not applied until you save the domain.",
         "menu_options": {
           "concept_source_integrations": "Use an available integration or device",
           "concept_source_entities": "Select Home Assistant entities directly",
           "concept_source_skip": "Do not configure this concept",
-          "concept_source_back": "Back"
+          "concept_source_back": "Back to concepts"
         }
       },
       "concept_surfaces": {
