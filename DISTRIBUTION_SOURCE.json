@@ -1,7 +1,7 @@
 {
-  "source_commit": "d7170dec6c1a143dfecda343efcd4da7e8815593",
-  "manifest_version": "1.8.58",
-  "protected_zip_sha256": "99640d91d287b02e25ff7202c45f1e4deef79b5a1d801134276d0660a0967991",
+  "source_commit": "85e2be9ad53889fe444f008023e9072a840b9a3e",
+  "manifest_version": "1.8.59",
+  "protected_zip_sha256": "26db505c6fc86aa0fd34d233c397205a4ea5bcdc4e4a4b2d26505d69ad13c527",
   "runtime_files": {
     "DISTRIBUTION_NOTICE.md": "673ca5f00115be48ca43596d71d20d7fa0f9ccdd69d843aaba65e691d6beeed8",
     "__init__.py": "535994b6def8dbbd676679d7d2a152cd2fe2a5b6e62992f13d56d4cffe1c8a85",
@@ -27,7 +27,7 @@
     "configuration_surfaces.cpython-314-x86_64-linux-musl.so": "c16fa43647dfce0170558bf24f8a59bb6a2ccdb9f55aa1be6a90b22f831afedb",
     "configured_surfaces.cpython-314-aarch64-linux-musl.so": "978371c2bcbd504ddd8819b16e8e75090d3393688589030d23274b2c094fd697",
     "configured_surfaces.cpython-314-x86_64-linux-musl.so": "13f13da3e1e0387f9ee78efa1cc27d43afd0299308c14c0b9924f6d27a74fb05",
-    "const.py": "62845bda095e71ee0e6edc4984ffbe9ddbec14266c948620ca444167cde42cac",
+    "const.py": "2eb2b293591e3e7d18f9d2061f0cb631a3a2fe8a6156822c041dc92e1c4d38b4",
     "contracts/serialization.cpython-314-aarch64-linux-musl.so": "c5a960f314ad641670c6acbf7c3d7acc61f187be3350fca2eed3b3f7425db3d2",
     "contracts/serialization.cpython-314-x86_64-linux-musl.so": "88230dabf50a6ce651fef2e28981f453980f78428c4ce3b9def1675785089118",
     "diagnostics.py": "07a4384d023c89f3a4bd46fb6f433f53846f51e2a20f54af2c29b21096cb3d7d",
@@ -51,7 +51,7 @@
     "health.cpython-314-x86_64-linux-musl.so": "0de834a36f20571a0c95c3326464da0a2c20f4aaf157ea201e6b50646d3ba451",
     "icon.png": "8925e28f6d3e2eafde22a14896e58ec292bfddd1ae58d881a6b4de1ac1c30bc2",
     "logo.png": "960321934daedcd75e08e7146d4f983dae0081e910d00750793053205a43d3ba",
-    "manifest.json": "4068f4a05bde09b412095345ba50ca3cc1143dc99eda6b34c6aeb458af2fc9b7",
+    "manifest.json": "f8a3a1ba7ea2c0401e727962a0fcc797f3d801b217a539161ceaa8476a966ce8",
     "matching.cpython-314-aarch64-linux-musl.so": "7dff925854ea59906d95d6227e01e66cb304368ae64b930b86bba2648d7f331b",
     "matching.cpython-314-x86_64-linux-musl.so": "fc33fa06177251a584b466a420141875d7c3932eee7ec3bee5c49cb2bbc13c7b",
     "models/capability.cpython-314-aarch64-linux-musl.so": "b72d426164eadc514add764da02137222e558d56c5caf4e31f77145706c9b97d",
@@ -74,8 +74,8 @@
     "supervision.cpython-314-aarch64-linux-musl.so": "98094a20cc8f9ec352d71803110ce84e21df6ec2de41678709b8191874b6f64b",
     "supervision.cpython-314-x86_64-linux-musl.so": "70b3bb3478141a90461baa8c59a2da648a37425dd3ecfa61c898e582768e51f7",
     "translations/en.json": "2e807e8d8922c409cb64361e4f03601bc35d15031949e1a2d048d961bf9c729a",
-    "visual_asset_registry.cpython-314-aarch64-linux-musl.so": "a4e65a5a7ae89825db43a6b73da73d660ae48c22ef5a783cccf57c42ee3b39c7",
-    "visual_asset_registry.cpython-314-x86_64-linux-musl.so": "89f677afba3bb23b62a20c4f31d655ff31351e4c56d8c449240b924a572b169b",
+    "visual_asset_registry.cpython-314-aarch64-linux-musl.so": "7b0e393b7c7c691158580659d9fa74732f4d0c261bd7463c962d72d99a04c3d4",
+    "visual_asset_registry.cpython-314-x86_64-linux-musl.so": "b89d488acbcd2cec8ec53d57a9ea90a25cd23e9e374eeece8518e7d2b44695ef",
     "wizard.cpython-314-aarch64-linux-musl.so": "ddd43d4e21a05c15c2e5dbecfe666838dab5de3bbd7d5dbaf887e17eb0b3b21a",
     "wizard.cpython-314-x86_64-linux-musl.so": "46e135c084e549d2ed73f53fb94f0669477ba058e67ea7b03a12e21d62dbb018",
     "wizard_candidates.cpython-314-aarch64-linux-musl.so": "d666012d088f1538a39eb6c83b2c76cfa94c4ea24770ca871177200479a36827",
@@ -131,8 +131,8 @@
   "branding_files": {
     "icon.png": "960321934daedcd75e08e7146d4f983dae0081e910d00750793053205a43d3ba",
     "logo@2x.png": "0b6af551f2939c13d18eb9ef763c0dbed5e75c0956da8548d9b17315e44a568c",
-    "logo.png": "d9bded56e39e44bdf9cc06ba6db92d1ac16e3e497a95071e6672034f4e1884ee",
-    "icon@2x.png": "20df6bc79a72407dac2feaea43a96381eeb0c93005e3e75bd2a9877d05239261"
+    "icon@2x.png": "20df6bc79a72407dac2feaea43a96381eeb0c93005e3e75bd2a9877d05239261",
+    "logo.png": "d9bded56e39e44bdf9cc06ba6db92d1ac16e3e497a95071e6672034f4e1884ee"
   },
   "platforms": {
     "aarch64": {
