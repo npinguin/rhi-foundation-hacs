@@ -15,6 +15,7 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 ROOT_URL = "/rhi_foundation/frontend"
 SCRIPT = "rhi-foundation-engineering.js"
+HERO_SCENES = ("overview", "configuration", "diagnostics")
 URL = ROOT_URL + "/" + SCRIPT
 UX_OPTION = "enable_ux"
 _TRANSPORT_KEY = "rhi_foundation_engineering_transport"
@@ -37,6 +38,11 @@ async def async_register_frontend(hass) -> None:
         payload = await hass.async_add_executor_job(
             (Path(__file__).parent / "frontend" / SCRIPT).read_bytes
         )
+        hero_payloads = {
+            scene: await hass.async_add_executor_job(
+                (Path(__file__).parent / "frontend" / "hero" / f"{scene}.svg").read_bytes
+            ) for scene in HERO_SCENES
+        }
     except OSError as exc:
         _LOGGER.warning("Foundation engineering frontend unavailable: %s", type(exc).__name__)
         hass.data[_TRANSPORT_KEY] = {"verified": False, "error": type(exc).__name__}
@@ -61,7 +67,30 @@ async def async_register_frontend(hass) -> None:
                 headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
             )
 
+
+    class FoundationEngineeringHeroView(HomeAssistantView):
+        url = ROOT_URL + "/hero/{scene}.svg"
+        name = "rhi_foundation:engineering_hero"
+        requires_auth = False
+
+        async def get(self, request, scene):
+            entries = hass.config_entries.async_entries(DOMAIN)
+            loaded = len(entries) == 1 and str(
+                getattr(entries[0].state, "value", entries[0].state)
+            ).lower() == "loaded"
+            if not loaded or not enabled(entries[0]) or scene not in hero_payloads:
+                return web.Response(status=404, headers={"Cache-Control": "no-store"})
+            return web.Response(
+                body=hero_payloads[scene], content_type="image/svg+xml",
+                headers={
+                    "Cache-Control": "no-store",
+                    "X-Content-Type-Options": "nosniff",
+                    "Content-Security-Policy": "default-src 'none'; object-src 'none'",
+                },
+            )
+
     hass.http.register_view(FoundationEngineeringFrontendView())
+    hass.http.register_view(FoundationEngineeringHeroView())
     hass.data[_TRANSPORT_KEY] = {"verified": True, "bytes": len(payload)}
 
 

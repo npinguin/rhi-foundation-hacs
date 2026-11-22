@@ -408,6 +408,15 @@ Object.assign(FX_WORDS.nl,{"overview":"Overzicht","configuration":"Moduleconfigu
 Object.assign(FX_WORDS.en,{"overview":"Overview","configuration":"Module Config","diagnostics":"Module Diagnostics","configuredCount":"source selections saved","savedChoices":"saved technical selections","notVerified":"Technical evidence not assessed","notReady":"Not confirmed working","attentionTitle":"Attention and actions","configAction":"Configure","diagnoseAction":"Investigate","showDetails":"Technical details","discoveryAction":"Capture inventory","discoveryUnknown":"The technical inventory has not been captured. Existing native devices may still be selectable.","scopeAll":"All matching devices (confirmation)","scopeSpecific":"Specific devices","moduleContext":"Module","sourceTable":"Source / device / entity","selectionState":"Selected","noCandidates":"No eligible devices in current registration","emptyEvidence":"Source evidence not assessed","notFoundSource":"Saved source currently unavailable","pendingChanges":"Unsaved changes","reviewChanges":"Review changes","discard":"Discard changes","stay":"Stay","switchWarning":"You have unsaved changes. Save or discard before changing module.","saveReadback":"Technical source selection saved and read back; physical operation not verified.","notSaved":"Save status not confirmed. Check the current selection before retrying.","noChange":"No configuration change required","selectedItems":"devices selected","directSource":"Direct entity","requiredOptional":"Published measurement inputs","missingSelection":"No source selected","nativeFallback":"Advanced configuration in Home Assistant","exportPartial":"Export technical evidence (may be incomplete)","exportComplete":"Export technical evidence","partialInfo":"This export is incomplete and is not a validated module configuration.","traceClear":"No Foundation handoff errors; other evidence gaps remain visible.","statusSelected":"Selection saved, not verified","fieldIssue":"Measurement not assessed","detailsStatus":"Source evidence / technical details","sourceUnavailable":"Selected source not found in current inventory","expandConcept":"Show source selections","oneCard":"Select inside this card, review the change, then save once.","summaryNoScan":"Inventory not captured","summaryPartial":"Inventory partial","summaryComplete":"Technical inventory captured"});
 Object.assign(FX_WORDS.fr,{"overview":"Vue d’ensemble","configuration":"Configuration module","diagnostics":"Diagnostic module","configuredCount":"sélections de sources enregistrées","savedChoices":"choix techniques enregistrés","notVerified":"Preuve technique non évaluée","notReady":"Fonctionnement non confirmé","attentionTitle":"Attention et actions","configAction":"Configurer","diagnoseAction":"Examiner","showDetails":"Détails techniques","discoveryAction":"Capturer l’inventaire","discoveryUnknown":"L’inventaire technique n’a pas été capturé. Les appareils natifs peuvent être sélectionnables.","scopeAll":"Tous les appareils compatibles (confirmation)","scopeSpecific":"Appareils spécifiques","moduleContext":"Module","sourceTable":"Source / appareil / entité","selectionState":"Sélection","noCandidates":"Aucun appareil éligible","emptyEvidence":"Preuve non évaluée","notFoundSource":"Source enregistrée indisponible","pendingChanges":"Modifications non enregistrées","reviewChanges":"Examiner les modifications","discard":"Abandonner","stay":"Rester","switchWarning":"Modifications non enregistrées. Enregistrer ou abandonner avant de changer de module.","saveReadback":"Choix technique enregistré et relu ; fonctionnement physique non vérifié.","notSaved":"État de sauvegarde non confirmé. Vérifiez la sélection actuelle avant de réessayer.","noChange":"Aucun changement nécessaire","selectedItems":"appareils sélectionnés","directSource":"Entité directe","requiredOptional":"Mesures publiées","missingSelection":"Aucune source sélectionnée","nativeFallback":"Configuration avancée dans Home Assistant","exportPartial":"Exporter les preuves techniques (incomplet possible)","exportComplete":"Exporter les preuves techniques","partialInfo":"Cet export est incomplet et n’est pas une configuration validée.","traceClear":"Aucune erreur de transmission Foundation ; les autres lacunes restent visibles.","statusSelected":"Choix enregistré, non vérifié","fieldIssue":"Mesure non évaluée","detailsStatus":"Preuves / détails techniques","sourceUnavailable":"Source absente de l’inventaire","expandConcept":"Afficher les sources","oneCard":"Sélectionner dans cette carte, vérifier puis enregistrer.","summaryNoScan":"Inventaire non capturé","summaryPartial":"Inventaire partiel","summaryComplete":"Inventaire technique capturé"});
 
+Object.assign(FX_WORDS.nl,{technicalInterface:"Technische interface beschikbaar; werking niet geverifieerd",unresolvedDevice:"apparaatverwijzingen ontbreken in de inventaris",sourceIssue:"Technische bronfout",siteScanReview:"Controleer inventarisrelaties",viewIssues:"Onderzoeken"});
+Object.assign(FX_WORDS.en,{technicalInterface:"Technical interface available; operation not verified",unresolvedDevice:"device references are missing from the inventory",sourceIssue:"Technical source error",siteScanReview:"Review inventory references",viewIssues:"Investigate"});
+Object.assign(FX_WORDS.fr,{technicalInterface:"Interface technique disponible; fonctionnement non vérifié",unresolvedDevice:"références d’appareils manquantes dans l’inventaire",sourceIssue:"Erreur de source technique",siteScanReview:"Examiner les références de l’inventaire",viewIssues:"Examiner"});
+Object.assign(FX_WORDS.nl,{candidateBindings:"kandidaatkoppelingen",candidateMissing:"kandidaatbewijzen ontbreken",temporarilyUnavailable:"tijdelijk niet beschikbaar",technicalComplete:"Technische inputs volledig; werking niet geverifieerd",technicalIncomplete:"Technische inputs onvolledig"});
+Object.assign(FX_WORDS.en,{candidateBindings:"candidate bindings",candidateMissing:"candidate evidence missing",temporarilyUnavailable:"temporarily unavailable",technicalComplete:"Technical inputs complete; operation not verified",technicalIncomplete:"Technical inputs incomplete"});
+Object.assign(FX_WORDS.fr,{candidateBindings:"associations de candidats",candidateMissing:"preuves manquantes",temporarilyUnavailable:"temporairement indisponibles",technicalComplete:"Entrées techniques complètes; fonctionnement non vérifié",technicalIncomplete:"Entrées techniques incomplètes"});
+Object.assign(FX_WORDS.nl,{candidateInvalid:"ongeldige registry-koppelingen"});
+Object.assign(FX_WORDS.en,{candidateInvalid:"invalid registry bindings"});
+Object.assign(FX_WORDS.fr,{candidateInvalid:"associations de registre invalides"});
 const FX_CARD_STYLE = `
 .fx-root{min-height:220px;background:var(--rhi-color-surface);border-radius:var(--rhi-radius-lg);color:var(--rhi-color-text)}
 .fx-content{padding:var(--rhi-space-4);display:grid;gap:var(--rhi-space-4)}
@@ -700,6 +709,11 @@ class RhiFoundationEngineeringCard extends HTMLElement {
   _button(label,action,primary=false,disabled=false){
     return `<button type="button" class="fx-action${primary?" primary":""}" data-fx-action="${this._esc(action)}"${disabled?" disabled":""}>${this._esc(label)}</button>`;
   }
+  _sourceIssueText(issue){
+    if(issue?.reason_code==="unresolved_device_references"&&Number.isInteger(issue?.count))
+      return String(issue.count)+" "+this._t("unresolvedDevice");
+    return this._t("sourceIssue")+" · "+String(issue?.source||this._t("countUnknown"));
+  }
   _overview(d){
     const inventory=d.inventory||{},modules=d.modules||[],reg=d.registries||{};
     const status=inventory.status==="NOT_CAPTURED"?this._t("summaryNoScan"):
@@ -718,8 +732,9 @@ class RhiFoundationEngineeringCard extends HTMLElement {
         ${this._esc(status)}${inventory.captured_at?" · "+this._esc(this._date(inventory.captured_at)):""}
       </p>
       ${inventory.status==="NOT_CAPTURED"?`<p class="fx-muted">${this._esc(this._t("discoveryUnknown"))}</p>`:""}
-      ${inventory.status==="PARTIAL_HOLD"?`<p class="fx-warn">${this._esc(this._t("needsReview"))} ·
-        ${this._esc(Object.keys(inventory.source_errors||{}).length)} ${this._esc(this._t("scanErrors"))}</p>`:""}
+      ${inventory.status==="PARTIAL_HOLD"?`<div class="fx-note"><strong>${this._esc(this._t("siteScanReview"))}</strong>
+        ${(inventory.source_issues||[]).map(x=>`<p>${this._esc(this._sourceIssueText(x))}</p>`).join("")}
+        <button class="fx-action" data-fx-action="go-diagnostics">${this._esc(this._t("viewIssues"))}</button></div>`:""}
     </article>
     ${this._modules(d)}
     <details class="fx-card fx-technical"><summary>${this._esc(this._t("showDetails"))}</summary>
@@ -743,7 +758,7 @@ class RhiFoundationEngineeringCard extends HTMLElement {
       return `<article class="fx-item"><div class="fx-context">
         <div><strong>${this._esc(m.display_name)}</strong>
           <div class="fx-subline">${this._esc(saved)} ${this._esc(this._t("savedChoices"))}
-            · ${this._esc(this._t("notReady"))}
+            
             ${review?" · "+this._esc(review)+" "+this._esc(this._t("attention")):""}</div></div>
         <div class="fx-toolbar">
           <button class="fx-action primary" data-fx-action="go-config"
@@ -781,6 +796,12 @@ class RhiFoundationEngineeringCard extends HTMLElement {
     const sourceName=name=>String(name||"").replaceAll("_"," ").replace(/\b\w/g,x=>x.toUpperCase());
     const renderConcept=c=>{
       const live=native[c.concept_id]||{},sources=[...(live.sources||[])];
+      // Existing selections stay prominent without hiding legitimate alternatives.
+      const isChosen=src=>{
+        const staged=this._pending.get([c.concept_id,"integration",src.source_id].join("|"));
+        return staged?Boolean(staged.selected):
+          (c.selected_integrations||[]).some(x=>x.integration_domain===src.source_id);
+      };
       const names=new Set(sources.map(x=>x.source_id));
       for(const row of c.published_sources||[]){
         const name=row.integration_domain;
@@ -792,14 +813,29 @@ class RhiFoundationEngineeringCard extends HTMLElement {
         if(name&&!names.has(name)){sources.push({source_id:name,display_name:sourceName(name),
           eligible:false,devices:[]});names.add(name);}
       }
+      sources.sort((a,b)=>Number(isChosen(b))-Number(isChosen(a))||
+        String(a.display_name||a.source_id).localeCompare(String(b.display_name||b.source_id)));
       const saved=(c.selected_integrations||[]).length+(c.selected_surfaces||[]).reduce(
         (n,row)=>n+(row.fields||[]).length,0);
       const issueCount=(c.unresolved||[]).length;
       const trace=(data.runtime_diagnostics||[]).find(x=>x.concept_id===c.concept_id)||{};
-      const problems=[...(trace.issues||[]),...(c.unresolved||[])];
-      const status=partial?this._t("notVerified"):
-        problems.length?this._t("needsReview"):
-        saved?this._t("statusSelected"):this._t("pending");
+      const handoffs=(data.selected_input_handoff?.inputs||[])
+        .filter(item=>item.concept_id===c.concept_id);
+      const invalidRegistryStates=new Set([
+        "IDENTITY_INCOMPLETE","ENTITY_MISSING","ENTITY_DISABLED","REGISTRY_CONFLICT"
+      ]);
+      const handoffIssues=handoffs.flatMap(item=>[
+        ...(item.discovery_assessment?.issues||[]),
+        ...(item.evidence_missing_candidate_ids||[]).map(id=>"candidate_evidence_missing:"+id),
+        ...(item.candidate_evidence||[]).filter(row=>
+          invalidRegistryStates.has(row.native_registry_status)).map(row=>
+          "candidate_registry_problem:"+row.native_registry_status+":"+row.candidate_id)
+      ]);
+      const problems=[...new Set([...(trace.issues||[]),...(c.unresolved||[]),
+        ...handoffIssues])];
+      const status=problems.length?this._t("needsReview"):
+        saved?this._t("statusSelected"):
+        partial?this._t("notVerified"):this._t("pending");
       // Only the active foldable materializes source rows. Large HA
       // installations must not render thousands of hidden device controls.
       if(this._selectedConcept!==c.concept_id)
@@ -884,8 +920,32 @@ class RhiFoundationEngineeringCard extends HTMLElement {
             ${this._esc(row.current_entity_id||row.resource_id||row.key||"")}</div>`).join("")}
           ${(trace.handoff||[]).map(row=>`<div class="fx-subline fx-code">${this._esc(JSON.stringify(row))}</div>`).join("")}
         </div></details>`;
+      const handoffSummary=handoffs.map(item=>{
+        const evidence=item.candidate_evidence||[];
+        const temporarilyUnavailable=evidence.filter(row=>
+          row.native_registry_status==="REGISTERED_TEMPORARILY_UNAVAILABLE").length;
+        const invalid=evidence.filter(row=>
+          invalidRegistryStates.has(row.native_registry_status)).length;
+        const missing=(item.evidence_missing_candidate_ids||[]).length;
+        const assessment=item.discovery_assessment||{};
+        return `<div class="fx-item">
+          <strong>${this._esc(item.integration_domain||item.builder_id||"Source")}</strong>
+          <p class="fx-subline">${this._esc(item.device_filter_mode||"unknown")}
+            · ${this._esc((item.selected_device_ids||[]).length)} ${this._esc(this._t("selectedItems"))}
+            · ${this._esc(evidence.length)} ${this._esc(this._t("candidateBindings"))}</p>
+          <p class="fx-muted">${this._esc(assessment.required_inputs_complete===true&&
+            !invalid&&!missing?this._t("technicalComplete"):this._t("technicalIncomplete"))}
+            ${assessment.review_required?" · "+this._esc(this._t("needsReview")):""}
+            ${temporarilyUnavailable?" · "+temporarilyUnavailable+" "+this._esc(this._t("temporarilyUnavailable")):""}
+            ${invalid?" · "+invalid+" "+this._esc(this._t("candidateInvalid")):""}
+            ${missing?" · "+missing+" "+this._esc(this._t("candidateMissing")):""}</p>
+          <details class="fx-technical"><summary>${this._esc(this._t("showDetails"))}</summary>
+            <code class="fx-code">${this._esc(JSON.stringify(item))}</code></details>
+        </div>`;
+      }).join("");
       const body=diagnostics?`<div class="fx-list">
-          <p class="fx-muted">${this._esc(partial?this._t("discoveryUnknown"):this._t("statusSelected"))}</p>
+          ${handoffSummary}
+          ${partial?"":`<p class="fx-muted">${this._esc(this._t("statusSelected"))}</p>`}
           ${problems.length?problems.map(problem=>{
             const ref=String(problem).split(":");
             const identified=(c.configuration_fields||[]).find(field=>
@@ -899,10 +959,10 @@ class RhiFoundationEngineeringCard extends HTMLElement {
               <button class="fx-action" data-fx-action="go-config"
                 data-fx-concept-target="${this._esc(c.concept_id)}">${this._esc(this._t("configAction"))}</button>
               <details class="fx-technical"><summary>${this._esc(this._t("showDetails"))}</summary><code>${this._esc(problem)}</code></details>
-            </div>`;}).join(""):`<p class="fx-muted">${this._esc(this._t("traceClear"))}</p>`}
+            </div>`;}).join(""):partial?"":`<p class="fx-muted">${this._esc(this._t("traceClear"))}</p>`}
           ${technical}
         </div>`:`<div class="fx-concept-body">
-           <p class="fx-muted">${this._esc(this._t("oneCard"))}</p>
+           
            <table class="fx-table"><thead><tr><th>${this._esc(this._t("sourceTable"))}</th>
              <th>${this._esc(this._t("mode"))}</th><th>${this._esc(this._t("selectionState"))}</th></tr></thead>
              <tbody>${srcRows}${fields}</tbody></table>
@@ -960,7 +1020,11 @@ class RhiFoundationEngineeringCard extends HTMLElement {
           ${this._button(this._t(partial?"exportPartial":"exportComplete"),"export-module",true)}</div></div>
       ${partial?`<div class="fx-note">${this._esc(this._t("partialInfo"))}
         <span class="fx-muted">${this._esc(data?.status||this._t("summaryNoScan"))}</span></div>`:""}
-      ${this._moduleTree(true)}
+      ${(this._data?.inventory?.source_issues||[]).length?`<div class="fx-note">
+                <strong>${this._esc(this._t("siteScanReview"))}</strong>
+                ${(this._data.inventory.source_issues||[]).map(x=>`<p>${this._esc(this._sourceIssueText(x))}</p>`).join("")}
+                </div>`:""}
+       ${this._moduleTree(true)}
     </article>`;
   }
   _draw(){
@@ -971,12 +1035,13 @@ class RhiFoundationEngineeringCard extends HTMLElement {
       activeModule:"foundation",activeItem:this._tab});
     const title=this._t(this._tab==="overview"?"overviewTitle":this._tab+"Title");
     const sub=this._t(this._tab==="overview"?"overviewSub":this._tab+"Sub");
-    // Core Hero remains optional. A tiny five-scene sprite is never enlarged.
+    // Every standalone engineering perspective has local, shipped Hero artwork.
     const supplied=this._config?.hero_images?.[this._tab];
-    const image=supplied||"";
+    const image=typeof supplied==="string"&&supplied.trim()?supplied:
+      "/rhi_foundation/frontend/hero/"+this._tab+".svg";
     const imageFocal=this._config?.hero_focal?.[this._tab]||null;
-    const hero=supplied?rhiUxPageHero({eyebrow:this._t("eyebrow"),title,
-      description:sub,image,imageAlt:"",imageFocal}):"";
+    const hero=rhiUxPageHero({eyebrow:this._t("eyebrow"),title,
+      description:sub,image,imageAlt:"",imageFocal});
     let page="";
     if(this._loading)page=rhiUxState({state:"loading",title:this._t("refresh")});
     else if(this._error)page=`<div class="fx-error">${this._esc(this._error)}</div>`;
@@ -989,7 +1054,7 @@ class RhiFoundationEngineeringCard extends HTMLElement {
     this.shadowRoot.innerHTML=`<style>${RHI_FX_CORE_CSS}\n${FX_CARD_STYLE}</style>
       <div class="rhi-ux-root fx-root">${shell}${hero}<main class="fx-content">
       <div class="fx-context"><span class="fx-muted">${this._esc(this._t("foundation"))}
-        · ${this._esc(this._t("notReady"))}</span>
+        · ${this._esc(this._t("technicalInterface"))}</span>
         ${this._button(this._t("refresh"),"refresh")}</div>
       ${this._notice?`<div role="status" class="fx-note">${this._esc(this._notice)}</div>`:""}
       ${page}</main></div>`;
