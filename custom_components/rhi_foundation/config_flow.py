@@ -525,17 +525,17 @@ async def apply_engineering_selection(
                                   get_framework_resource_provider(hass, source_id) is not None):
                 raise ValueError("framework_scope_unavailable")
             if not available and not resource_types:
-                # Existing explicit device intent must survive a temporary
-                # disappearance. The HA-native wizard preserves it; the inline
-                # editor must never replace it with a broader All scope.
+                # Native integrations may legitimately expose registry-backed
+                # entities without a DeviceEntry. That does not authorize an
+                # implicit upgrade from a Specific request to an All scope.
                 previous_scope = devices.get(target) or {}
                 if previous_scope and (
                     previous_scope.get("selection_origin") != "integration_scope_no_devices"
                     or previous_scope.get("device_filter_mode") == FILTER_SPECIFIC
                 ):
                     raise ValueError("existing_device_selection_unavailable")
-                # HA integrations can expose direct entities without a DeviceEntry.
-                # Exactly the existing wizard's documented integration scope.
+                if mode != FILTER_ALL or not confirm_all:
+                    raise ValueError("integration_scope_requires_explicit_confirmation")
                 mode, chosen = FILTER_ALL, [ALL_MATCHING]
                 selection_state = "configured"
                 origin = "integration_scope_no_devices"

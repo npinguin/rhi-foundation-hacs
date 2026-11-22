@@ -414,9 +414,9 @@ Object.assign(FX_WORDS.fr,{technicalInterface:"Interface technique disponible; f
 Object.assign(FX_WORDS.nl,{candidateBindings:"kandidaatkoppelingen",candidateMissing:"kandidaatbewijzen ontbreken",temporarilyUnavailable:"tijdelijk niet beschikbaar",technicalComplete:"Technische inputs volledig; werking niet geverifieerd",technicalIncomplete:"Technische inputs onvolledig"});
 Object.assign(FX_WORDS.en,{candidateBindings:"candidate bindings",candidateMissing:"candidate evidence missing",temporarilyUnavailable:"temporarily unavailable",technicalComplete:"Technical inputs complete; operation not verified",technicalIncomplete:"Technical inputs incomplete"});
 Object.assign(FX_WORDS.fr,{candidateBindings:"associations de candidats",candidateMissing:"preuves manquantes",temporarilyUnavailable:"temporairement indisponibles",technicalComplete:"Entrées techniques complètes; fonctionnement non vérifié",technicalIncomplete:"Entrées techniques incomplètes"});
-Object.assign(FX_WORDS.nl,{candidateInvalid:"ongeldige registry-koppelingen"});
-Object.assign(FX_WORDS.en,{candidateInvalid:"invalid registry bindings"});
-Object.assign(FX_WORDS.fr,{candidateInvalid:"associations de registre invalides"});
+Object.assign(FX_WORDS.nl,{"candidateInvalid":"ongeldige registry-koppelingen","candidateTruncated":"Kandidaatbewijs is afgekapt; dit overzicht is niet volledig","noDeviceScope":"Geen apart HA-apparaat: kies expliciet All en bevestig de integratiescope","nativeDisabled":"Native entiteit uitgeschakeld; controleer de HA-registratie","nativeMissing":"Geselecteerde entiteit ontbreekt in de actuele HA-registratie","nativeConflict":"Registry-identiteit verschilt; controleer de oorspronkelijke bron","nativeIdentityIncomplete":"Technische identiteit onvolledig","requiredInputMissing":"Vereist technisch meetpunt ontbreekt","candidateMissingIssue":"Gepubliceerde kandidaatkoppeling ontbreekt","cardinalityIssue":"Meerdere of onvoldoende technische kandidaten; controleer de selectie","captureMismatch":"Bewaarde bron niet bevestigd in de inventaris","providerIssue":"Technische provider niet beschikbaar","evidenceTimes":"Inventaris is een eerdere opname; huidige configuratie en native status zijn nog niet gecorreleerd","handoffRevisionIssue":"Bewaarde configuratie en huidige handoff hebben verschillende revisies"});
+Object.assign(FX_WORDS.en,{"candidateInvalid":"invalid registry bindings","candidateTruncated":"Candidate evidence is truncated; this view is incomplete","noDeviceScope":"No separate HA device: explicitly select All and confirm integration scope","nativeDisabled":"Native entity disabled; check the HA registry","nativeMissing":"Selected entity missing from the current HA registry","nativeConflict":"Registry identity conflict; review the original source","nativeIdentityIncomplete":"Technical identity incomplete","requiredInputMissing":"Required technical input is missing","candidateMissingIssue":"Published candidate binding evidence is missing","cardinalityIssue":"Too many or too few candidates; review exact selection","captureMismatch":"Saved source not confirmed in site inventory","providerIssue":"Technical provider unavailable","evidenceTimes":"Inventory is an earlier capture; current configuration and native status have not been correlated","handoffRevisionIssue":"Saved configuration and current handoff have different revisions"});
+Object.assign(FX_WORDS.fr,{"candidateInvalid":"associations de registre invalides","candidateTruncated":"Preuves de candidats tronquées ; vue incomplète","noDeviceScope":"Aucun appareil HA distinct : choisir explicitement All et confirmer la portée","nativeDisabled":"Entité native désactivée ; vérifier le registre HA","nativeMissing":"Entité sélectionnée absente du registre HA actuel","nativeConflict":"Identité de registre conflictuelle ; vérifier la source","nativeIdentityIncomplete":"Identité technique incomplète","requiredInputMissing":"Entrée technique obligatoire manquante","candidateMissingIssue":"Preuve de liaison candidate manquante","cardinalityIssue":"Nombre de candidats ambigu ; vérifier la sélection","captureMismatch":"Source enregistrée non confirmée dans l'inventaire","providerIssue":"Fournisseur technique indisponible","evidenceTimes":"L'inventaire est une capture antérieure ; configuration et état natif actuels non corrélés","handoffRevisionIssue":"Révisions différentes entre configuration et transmission"});
 const FX_CARD_STYLE = `
 .fx-root{min-height:220px;background:var(--rhi-color-surface);border-radius:var(--rhi-radius-lg);color:var(--rhi-color-text)}
 .fx-content{padding:var(--rhi-space-4);display:grid;gap:var(--rhi-space-4)}
@@ -650,7 +650,10 @@ class RhiFoundationEngineeringCard extends HTMLElement {
     }catch(e){
       // The server may have committed before transport/readback failure.
       // Never claim failure or blindly retry; keep the staged intent visible.
-      this._notice=this._t("notSaved")+" "+String(e?.message||e);
+      const reason=String(e?.message||e);
+      this._notice=this._t("notSaved")+" "+
+        (reason.includes("integration_scope_requires_explicit_confirmation")?
+          this._t("noDeviceScope"):reason);
     }finally{this._saving=false;this._draw();}
   }
   _friendlyStatus(state){
@@ -708,6 +711,34 @@ class RhiFoundationEngineeringCard extends HTMLElement {
   }
   _button(label,action,primary=false,disabled=false){
     return `<button type="button" class="fx-action${primary?" primary":""}" data-fx-action="${this._esc(action)}"${disabled?" disabled":""}>${this._esc(label)}</button>`;
+  }
+  _isModulePartial(data){
+    return data?.status!=="COMPLETE_TECHNICAL"||
+      data?.selected_input_handoff?.status==="PUBLISHED_PARTIAL"||
+      data?.evidence_alignment?.status==="HANDOFF_REVISION_MISMATCH";
+  }
+  _problemGuidance(problem){
+    const [code,detail]=String(problem).split(":");
+    if(code==="candidate_registry_problem"){
+      const key={
+        ENTITY_DISABLED:"nativeDisabled",ENTITY_MISSING:"nativeMissing",
+        REGISTRY_CONFLICT:"nativeConflict",IDENTITY_INCOMPLETE:"nativeIdentityIncomplete"
+      }[detail]||"needsReview";
+      return this._t(key);
+    }
+    const key={
+      required_input_missing:"requiredInputMissing",
+      candidate_evidence_missing:"candidateMissingIssue",
+      cardinality_violation:"cardinalityIssue",
+      selected_source_not_in_inventory:"captureMismatch",
+      selected_resource_not_in_inventory:"captureMismatch",
+      selected_entity_not_in_inventory:"captureMismatch",
+      field_evidence_unavailable:"fieldIssue",
+      framework_provider_unavailable_or_invalid:"providerIssue",
+      publisher_or_specification_unavailable:"providerIssue",
+      configured_device_scope_missing_or_invalid:"nativeIdentityIncomplete"
+    }[code]||"needsReview";
+    return this._t(key);
   }
   _sourceIssueText(issue){
     if(issue?.reason_code==="unresolved_device_references"&&Number.isInteger(issue?.count))
@@ -790,7 +821,7 @@ class RhiFoundationEngineeringCard extends HTMLElement {
     if(!active)return rhiUxState({state:"unavailable",title:this._t("noModules")});
     if(!data||data.module_id!==active.domain_id)
       return rhiUxState({state:"loading",title:this._t("refresh")});
-    const native=data.native_choices||{},partial=data.status!=="COMPLETE_TECHNICAL";
+    const native=data.native_choices||{},partial=this._isModulePartial(data);
     const concepts=data.concepts||[];
     if(!this._selectedConcept&&concepts.length)this._selectedConcept=concepts[0].concept_id;
     const sourceName=name=>String(name||"").replaceAll("_"," ").replace(/\b\w/g,x=>x.toUpperCase());
@@ -848,17 +879,9 @@ class RhiFoundationEngineeringCard extends HTMLElement {
         const old=(c.selected_integrations||[]).find(x=>x.integration_domain===name);
         const pending=this._pending.get([c.concept_id,"integration",name].join("|"));
         const checked=pending?.selected??Boolean(old);
-        const entries=(c.evidence||[]).filter(x=>x.kind==="integration_entry"&&
-          x.integration_domain===name).map(x=>x.key);
-        const seenResource=new Set();
-        const captured=(c.evidence||[]).filter(x=>
-          (x.kind==="device"&&(x.integration_domain===name||
-            (x.config_entry_ids||[]).some(id=>entries.includes(id))))||
-          (x.kind==="framework_capability"&&x.integration_domain===name&&x.resource_id))
-          .map(x=>({id:x.kind==="framework_capability"?x.resource_id:x.key,
-            display_name:x.name||x.resource_id||x.key}))
-          .filter(x=>x.id&&!seenResource.has(x.id)&&(seenResource.add(x.id),true));
-        const candidates=src.devices?.length?src.devices:captured;
+        // Only the current native HA chooser may offer a Save candidate.
+        // An older Site Discovery record is diagnostic evidence, not approval.
+        const candidates=Array.isArray(src.devices)?src.devices:[];
         const savedIds=old?.device_selection?.selected_device_ids||[];
         const chosen=pending?.selected_device_ids||savedIds;
         const mode=pending?.device_filter_mode||old?.device_selection?.device_filter_mode||
@@ -866,6 +889,7 @@ class RhiFoundationEngineeringCard extends HTMLElement {
         const retained=chosen.filter(id=>!candidates.some(x=>x.id===id));
         return `<tr class="fx-source-row"><td><strong>${this._esc(src.display_name||sourceName(name))}</strong>
             ${!src.eligible&&live.sources?.length?`<div class="fx-subline fx-warn">${this._esc(this._t("notFoundSource"))}</div>`:""}
+            ${src.eligible&&!candidates.length?`<div class="fx-subline fx-warn">${this._esc(this._t("noDeviceScope"))}</div>`:""}
           </td><td>
           <select class="fx-select fx-scope" data-fx-mode="${this._esc(name)}"
             data-fx-concept="${this._esc(c.concept_id)}" ${!src.eligible&&live.sources?.length?"disabled":""}>
@@ -926,7 +950,8 @@ class RhiFoundationEngineeringCard extends HTMLElement {
           row.native_registry_status==="REGISTERED_TEMPORARILY_UNAVAILABLE").length;
         const invalid=evidence.filter(row=>
           invalidRegistryStates.has(row.native_registry_status)).length;
-        const missing=(item.evidence_missing_candidate_ids||[]).length;
+        const missing=item.evidence_missing_count??(item.evidence_missing_candidate_ids||[]).length;
+        const truncated=item.projection_truncated===true;
         const assessment=item.discovery_assessment||{};
         return `<div class="fx-item">
           <strong>${this._esc(item.integration_domain||item.builder_id||"Source")}</strong>
@@ -938,7 +963,8 @@ class RhiFoundationEngineeringCard extends HTMLElement {
             ${assessment.review_required?" · "+this._esc(this._t("needsReview")):""}
             ${temporarilyUnavailable?" · "+temporarilyUnavailable+" "+this._esc(this._t("temporarilyUnavailable")):""}
             ${invalid?" · "+invalid+" "+this._esc(this._t("candidateInvalid")):""}
-            ${missing?" · "+missing+" "+this._esc(this._t("candidateMissing")):""}</p>
+            ${missing?" · "+missing+" "+this._esc(this._t("candidateMissing")):""}
+            ${truncated?" · "+this._esc(this._t("candidateTruncated")):""}</p>
           <details class="fx-technical"><summary>${this._esc(this._t("showDetails"))}</summary>
             <code class="fx-code">${this._esc(JSON.stringify(item))}</code></details>
         </div>`;
@@ -950,10 +976,8 @@ class RhiFoundationEngineeringCard extends HTMLElement {
             const ref=String(problem).split(":");
             const identified=(c.configuration_fields||[]).find(field=>
               ref.slice(1).join(":")===field.surface_id+"."+field.field_id);
-            const message=ref[0]==="field_evidence_unavailable"?
-              this._t("fieldIssue")+" · "+(identified?.display_name||this._t("requiredOptional")):
-              ref[0]==="selected_source_not_in_inventory"?
-              this._t("sourceUnavailable"):this._t("needsReview");
+            const message=this._problemGuidance(problem)+
+              (identified?" · "+(identified.display_name||this._t("requiredOptional")):"");
             return `<div class="fx-item fx-context">
               <span>${this._esc(message)}</span>
               <button class="fx-action" data-fx-action="go-config"
@@ -1013,13 +1037,17 @@ class RhiFoundationEngineeringCard extends HTMLElement {
     </article>`;
   }
   _diagnostics(){
-    const data=this._moduleData,partial=data?.status!=="COMPLETE_TECHNICAL";
+    const data=this._moduleData,partial=this._isModulePartial(data);
     return `<article class="fx-card">
       <div class="fx-context"><h3>${this._esc(this._t("diagnosticsTitle"))}</h3>
         <div class="fx-toolbar">${this._modulePicker()}
           ${this._button(this._t(partial?"exportPartial":"exportComplete"),"export-module",true)}</div></div>
       ${partial?`<div class="fx-note">${this._esc(this._t("partialInfo"))}
         <span class="fx-muted">${this._esc(data?.status||this._t("summaryNoScan"))}</span></div>`:""}
+      ${data?.evidence_alignment?.status==="HANDOFF_REVISION_MISMATCH"?
+        `<div class="fx-note">${this._esc(this._t("handoffRevisionIssue"))}</div>`:
+        data?.evidence_alignment?.status==="SNAPSHOT_AND_LIVE_NOT_CORRELATED"?
+        `<p class="fx-muted">${this._esc(this._t("evidenceTimes"))}</p>`:""}
       ${(this._data?.inventory?.source_issues||[]).length?`<div class="fx-note">
                 <strong>${this._esc(this._t("siteScanReview"))}</strong>
                 ${(this._data.inventory.source_issues||[]).map(x=>`<p>${this._esc(this._sourceIssueText(x))}</p>`).join("")}
