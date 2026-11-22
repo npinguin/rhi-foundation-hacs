@@ -295,14 +295,6 @@ function rhiUxVisualSelect({ label = "", value = "", options = [], placeholder =
   const current=String(value ?? ""); const first=placeholder ? `<option value="" ${current ? "" : "selected"} disabled>${rhiUxEscape(placeholder)}</option>` : ""; const rows=options.map(row=>typeof row==="object" ? row : {value:row,label:row}).map(row=>`<option value="${rhiUxEscape(row.value)}" ${String(row.value)===current ? "selected" : ""}>${rhiUxEscape(row.label ?? row.value)}</option>`).join(""); return `<label><span>${rhiUxEscape(label)}</span><select ${rhiUxEscape(attribute)}="1" ${disabled ? "disabled" : ""}>${first}${rows}</select></label>`;
 }
 
-/* Derived from approved 2026-11-22 Foundation 5-tab photo mock; view-only art.
- * Five scenes stacked in order: overview, modules, sources, configuration, diagnostics.
- * No embedded status values, controls, source identities, or site-private data.
- * SHA-256 of WebP source: 1f9a95ed4441578e12c2bb7783078ca485de92b3cd2e9c08f729ae79ec2f43cd; original small mock is not field-photo evidence.
- */
-const FX_APPROVED_HERO_SPRITE="data:image/webp;base64,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";
-const FX_HERO_FOCAL_Y={overview:6.5,modules:28.2,sources:50,configuration:71.8,diagnostics:93.5};
-
 /* Robotix Foundation engineering card.
  * Presentation only: no discovery, configuration writes or device commands.
  * Canonical RHI UX Core supplies the shell, Hero and shared visual grammar.
@@ -412,6 +404,10 @@ Object.assign(FX_WORDS.nl,{registries:"Registraties",uxRegistry:"Foundation UX",
 Object.assign(FX_WORDS.en,{registries:"Registrations",uxRegistry:"Foundation UX",visualRegistry:"Visual Asset Registry",dbsRegistry:"Domain Build Specifications",frameworkRegistry:"Framework providers",registrationUnknown:"Browser registration not verified",enabledSetting:"UX option enabled",goConfig:"Open Module Config"});
 Object.assign(FX_WORDS.fr,{registries:"Registres",uxRegistry:"Foundation UX",visualRegistry:"Registre des ressources visuelles",dbsRegistry:"Domain Build Specifications",frameworkRegistry:"Fournisseurs de frameworks",registrationUnknown:"Enregistrement navigateur non vérifié",enabledSetting:"Option UX activée",goConfig:"Ouvrir Config module"});
 
+Object.assign(FX_WORDS.nl,{"overview":"Overzicht","configuration":"Moduleconfiguratie","diagnostics":"Modulediagnostiek","configuredCount":"bronkeuzes bewaard","savedChoices":"bronkeuzes bewaard","notVerified":"Nog niet technisch beoordeeld","notReady":"Nog niet als werkend bevestigd","attentionTitle":"Aandacht en acties","configAction":"Configureren","diagnoseAction":"Onderzoeken","showDetails":"Technische details","discoveryAction":"Inventaris vastleggen","discoveryUnknown":"De technische inventaris is niet vastgelegd. Bestaande apparaten kunnen wel selecteerbaar zijn.","scopeAll":"Alle passende apparaten (extra bevestiging)","scopeSpecific":"Specifieke apparaten","moduleContext":"Module","sourceTable":"Bron / apparaat / entiteit","selectionState":"Gekozen","noCandidates":"Geen geschikte apparaten in de huidige registratie","emptyEvidence":"Brongegevens nog niet beoordeeld","notFoundSource":"Bewaarde bron is momenteel niet beschikbaar","pendingChanges":"Wijzigingen nog niet opgeslagen","reviewChanges":"Wijzigingen controleren","discard":"Wijzigingen verwerpen","stay":"Blijven","switchWarning":"Je hebt niet-opgeslagen wijzigingen. Bewaar ze of verwerp ze voordat je een andere module opent.","saveReadback":"Technische bronselectie opgeslagen en opnieuw uitgelezen; fysieke werking niet bevestigd.","notSaved":"Opslagstatus niet bevestigd. Controleer de actuele keuze voordat je opnieuw opslaat.","noChange":"Geen configuratiewijziging nodig","selectedItems":"apparaten geselecteerd","directSource":"Directe entiteit","requiredOptional":"Gepubliceerde meetpunten","missingSelection":"Geen bron gekozen","nativeFallback":"Geavanceerde configuratie in Home Assistant","exportPartial":"Technisch bewijs exporteren (mogelijk onvolledig)","exportComplete":"Technisch bewijs exporteren","partialInfo":"Deze export is onvolledig en niet klaar als gevalideerde moduleconfiguratie.","traceClear":"Geen fouten in de Foundation-handoff; andere bewijsleemten blijven afzonderlijk zichtbaar.","statusSelected":"Keuze bewaard, niet geverifieerd","fieldIssue":"Meting niet beoordeeld","detailsStatus":"Brongegevens / diagnostische details","sourceUnavailable":"Geselecteerde bron niet gevonden bij huidige scan","expandConcept":"Toon bronkeuzes","oneCard":"Selecteer binnen deze kaart, controleer het verschil en sla één keer op.","summaryNoScan":"Inventaris niet vastgelegd","summaryPartial":"Inventaris gedeeltelijk","summaryComplete":"Technische inventaris vastgelegd"});
+Object.assign(FX_WORDS.en,{"overview":"Overview","configuration":"Module Config","diagnostics":"Module Diagnostics","configuredCount":"source selections saved","savedChoices":"saved technical selections","notVerified":"Technical evidence not assessed","notReady":"Not confirmed working","attentionTitle":"Attention and actions","configAction":"Configure","diagnoseAction":"Investigate","showDetails":"Technical details","discoveryAction":"Capture inventory","discoveryUnknown":"The technical inventory has not been captured. Existing native devices may still be selectable.","scopeAll":"All matching devices (confirmation)","scopeSpecific":"Specific devices","moduleContext":"Module","sourceTable":"Source / device / entity","selectionState":"Selected","noCandidates":"No eligible devices in current registration","emptyEvidence":"Source evidence not assessed","notFoundSource":"Saved source currently unavailable","pendingChanges":"Unsaved changes","reviewChanges":"Review changes","discard":"Discard changes","stay":"Stay","switchWarning":"You have unsaved changes. Save or discard before changing module.","saveReadback":"Technical source selection saved and read back; physical operation not verified.","notSaved":"Save status not confirmed. Check the current selection before retrying.","noChange":"No configuration change required","selectedItems":"devices selected","directSource":"Direct entity","requiredOptional":"Published measurement inputs","missingSelection":"No source selected","nativeFallback":"Advanced configuration in Home Assistant","exportPartial":"Export technical evidence (may be incomplete)","exportComplete":"Export technical evidence","partialInfo":"This export is incomplete and is not a validated module configuration.","traceClear":"No Foundation handoff errors; other evidence gaps remain visible.","statusSelected":"Selection saved, not verified","fieldIssue":"Measurement not assessed","detailsStatus":"Source evidence / technical details","sourceUnavailable":"Selected source not found in current inventory","expandConcept":"Show source selections","oneCard":"Select inside this card, review the change, then save once.","summaryNoScan":"Inventory not captured","summaryPartial":"Inventory partial","summaryComplete":"Technical inventory captured"});
+Object.assign(FX_WORDS.fr,{"overview":"Vue d’ensemble","configuration":"Configuration module","diagnostics":"Diagnostic module","configuredCount":"sélections de sources enregistrées","savedChoices":"choix techniques enregistrés","notVerified":"Preuve technique non évaluée","notReady":"Fonctionnement non confirmé","attentionTitle":"Attention et actions","configAction":"Configurer","diagnoseAction":"Examiner","showDetails":"Détails techniques","discoveryAction":"Capturer l’inventaire","discoveryUnknown":"L’inventaire technique n’a pas été capturé. Les appareils natifs peuvent être sélectionnables.","scopeAll":"Tous les appareils compatibles (confirmation)","scopeSpecific":"Appareils spécifiques","moduleContext":"Module","sourceTable":"Source / appareil / entité","selectionState":"Sélection","noCandidates":"Aucun appareil éligible","emptyEvidence":"Preuve non évaluée","notFoundSource":"Source enregistrée indisponible","pendingChanges":"Modifications non enregistrées","reviewChanges":"Examiner les modifications","discard":"Abandonner","stay":"Rester","switchWarning":"Modifications non enregistrées. Enregistrer ou abandonner avant de changer de module.","saveReadback":"Choix technique enregistré et relu ; fonctionnement physique non vérifié.","notSaved":"État de sauvegarde non confirmé. Vérifiez la sélection actuelle avant de réessayer.","noChange":"Aucun changement nécessaire","selectedItems":"appareils sélectionnés","directSource":"Entité directe","requiredOptional":"Mesures publiées","missingSelection":"Aucune source sélectionnée","nativeFallback":"Configuration avancée dans Home Assistant","exportPartial":"Exporter les preuves techniques (incomplet possible)","exportComplete":"Exporter les preuves techniques","partialInfo":"Cet export est incomplet et n’est pas une configuration validée.","traceClear":"Aucune erreur de transmission Foundation ; les autres lacunes restent visibles.","statusSelected":"Choix enregistré, non vérifié","fieldIssue":"Mesure non évaluée","detailsStatus":"Preuves / détails techniques","sourceUnavailable":"Source absente de l’inventaire","expandConcept":"Afficher les sources","oneCard":"Sélectionner dans cette carte, vérifier puis enregistrer.","summaryNoScan":"Inventaire non capturé","summaryPartial":"Inventaire partiel","summaryComplete":"Inventaire technique capturé"});
+
 const FX_CARD_STYLE = `
 .fx-root{min-height:220px;background:var(--rhi-color-surface);border-radius:var(--rhi-radius-lg);color:var(--rhi-color-text)}
 .fx-content{padding:var(--rhi-space-4);display:grid;gap:var(--rhi-space-4)}
@@ -435,10 +431,33 @@ const FX_CARD_STYLE = `
 .fx-bad{color:var(--rhi-color-error);font-weight:600}.fx-warn{color:#956000;font-weight:600}
 .fx-ok{color:#13672e;font-weight:600}.fx-code{font-family:var(--rhi-font-family-mono);font-size:11px;overflow-wrap:anywhere}
 .fx-select{padding:9px 11px;min-height:38px;border:1px solid var(--rhi-color-line);background:var(--rhi-color-surface);border-radius:var(--rhi-radius-sm);color:inherit;max-width:100%}
+.fx-module{border:1px solid var(--rhi-color-line);border-radius:var(--rhi-radius-md);background:var(--rhi-color-surface);min-width:0}
+.fx-module>summary,.fx-concept>summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;min-height:42px;font-weight:600}
+.fx-module>summary::marker,.fx-concept>summary::marker{color:var(--rhi-color-primary)}
+.fx-concept{border-top:1px solid var(--rhi-color-line-soft)}
+.fx-concept-body{padding:4px 12px 12px;display:grid;gap:10px}
+.fx-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.fx-table td,.fx-table th{border-bottom:1px solid var(--rhi-color-line-soft);padding:8px 6px;text-align:left;vertical-align:middle;overflow-wrap:anywhere}
+.fx-table th{font-weight:600;color:var(--rhi-color-muted);font-size:11px}
+.fx-table td:first-child{width:58%}
+.fx-table td:nth-child(2){width:25%}
+.fx-table td:last-child{width:17%;text-align:center}
+.fx-table th:last-child{text-align:center}
+.fx-table label{display:flex;gap:6px;align-items:center;min-height:34px}
+.fx-table input[type=checkbox]{width:19px;height:19px;flex:none;accent-color:var(--rhi-color-primary)}
+.fx-subsource{padding-left:16px;color:var(--rhi-color-muted)}
+.fx-subline{font-size:11px;color:var(--rhi-color-muted)}
+.fx-context{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.fx-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fx-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 0 0;border-top:1px solid var(--rhi-color-line)}
+.fx-scope{max-width:170px}
+.fx-note{border-left:3px solid var(--rhi-color-attention);background:var(--rhi-color-surface-soft);padding:9px 11px;border-radius:var(--rhi-radius-sm)}
+.fx-technical{margin-top:8px}
+.fx-technical>summary{cursor:pointer;font-weight:600}
 .fx-steps{counter-reset:fxstep}
 .fx-steps li{list-style:none;margin:8px 0;padding:10px 13px;border-left:3px solid var(--rhi-color-primary-soft);background:var(--rhi-color-surface-soft)}
 .fx-error{border-left:3px solid var(--rhi-color-error);padding:10px 12px;background:var(--rhi-color-surface-soft)}
-@media(max-width:760px){.fx-content{padding:var(--rhi-space-2)}.fx-grid{grid-template-columns:1fr}.fx-card{padding:var(--rhi-space-3)}}
+@media(max-width:760px){.fx-content{padding:var(--rhi-space-2)}.fx-grid{grid-template-columns:1fr}.fx-card{padding:var(--rhi-space-3)}.fx-table td,.fx-table th{padding:8px 3px}.fx-subsource{padding-left:6px}.fx-table td:first-child{width:53%}.fx-table td:nth-child(2){width:31%}.fx-table td:last-child{width:16%}}
 `;
 
 class RhiFoundationEngineeringCard extends HTMLElement {
@@ -451,7 +470,7 @@ class RhiFoundationEngineeringCard extends HTMLElement {
     this._scanConfirm=false; this._scanning=false;
     this._selectedDomain="";this._selectedConcept="";this._selectedIntegration="";
     this._moduleData=null;this._moduleLoading=false;this._pending=new Map();this._confirmAll=false;
-    this._saving=false;this._notice="";
+    this._saving=false;this._notice="";this._editRevision=null;this._expandedConcept="";this._pendingModuleSwitch="";this._review=false;this._savedConfirmed=false;
   }
   static getStubConfig(){return {type:"custom:rhi-foundation-engineering"};}
   getCardSize(){return 6;}
@@ -485,11 +504,11 @@ class RhiFoundationEngineeringCard extends HTMLElement {
     this._moduleLoading=true;
     try{
       const result=await this._hass.callWS({
-        type:"rhi_foundation/engineering",module_export:module.domain_id,module_values:values
+        type:"rhi_foundation/engineering",module_export:module.domain_id,module_values:values,module_choices:!values
       });
       if(result?.contract!=="RHI_FOUNDATION_MODULE_EVIDENCE_V1"||
         result.module_id!==module.domain_id)throw Error("Invalid module evidence");
-      this._moduleData=result;
+      if(this._module()?.domain_id===result.module_id)this._moduleData=result;
     }catch(e){this._notice=String(e?.message||e);this._moduleData=null;}
     finally{this._moduleLoading=false;this._draw();}
   }
@@ -542,25 +561,88 @@ class RhiFoundationEngineeringCard extends HTMLElement {
     }catch(e){this._notice=String(e?.message||e);this._draw();}
   }
   _stage(change){
-    this._pending.set([change.concept_id,change.source_kind,
-      change.source_kind==="entity"?change.surface_id+"."+change.field_id:change.source_id].join("|"),change);
-    this._draw();
+    if(!this._pending.size)this._editRevision=this._data?.configuration_revision;
+    const key=[change.concept_id,change.source_kind,
+      change.source_kind==="entity"?change.surface_id+"."+change.field_id:change.source_id].join("|");
+    this._pending.set(key,change);
+    const wasReview=this._review;
+    this._review=false;this._notice="";
+    if(wasReview){this._draw();return;}
+    const node=this.shadowRoot?.querySelector("[data-fx-pending-count]");
+    if(node)node.textContent=String(this._pending.size);
+    for(const action of ["review-module","cancel-module"]){
+      const button=this.shadowRoot?.querySelector('[data-fx-action="'+action+'"]');
+      if(button)button.disabled=false;
+    }
+    const save=this.shadowRoot?.querySelector('[data-fx-action="save-module"]');
+    if(save)save.disabled=true;
+  }
+  _readbackMatches(changes,data){
+    if(!data||!Array.isArray(data.concepts))return false;
+    return changes.every(change=>{
+      const concept=data.concepts.find(c=>c.concept_id===change.concept_id);
+      if(!concept)return false;
+      if(change.source_kind==="integration"){
+        const saved=(concept.selected_integrations||[]).find(
+          row=>row.integration_domain===change.source_id);
+        if(!change.selected)return !saved;
+        if(!saved)return false;
+        const actualMode=saved.device_selection?.device_filter_mode;
+        if(actualMode!==change.device_filter_mode)return false;
+        if(actualMode==="all_matching")return true;
+        if(actualMode!=="specific_devices")return false;
+        const actual=saved.device_selection?.selected_device_ids||[];
+        const requested=change.selected_device_ids||[];
+        return actual.length===requested.length&&
+          requested.every(id=>actual.includes(id));
+      }
+      if(change.source_kind==="entity"){
+        const saved=(concept.selected_surfaces||[]).find(
+          row=>row.surface_id===change.surface_id)?.fields?.find(
+          row=>row.field_id===change.field_id)?.source_identity?.current_entity_id;
+        return change.selected?saved===change.source_id:!saved;
+      }
+      return false;
+    });
   }
   async _saveModule(){
     const module=this._module();
-    if(!module||!this._pending.size||this._saving)return;
+    if(!module||!this._pending.size||this._saving||!this._review)return;
+    if([...this._pending.values()].some(change=>change.selected&&
+      change.device_filter_mode==="all_matching")&&!this._confirmAll){
+      this._notice=this._t("scopeConfirm");this._draw();return;
+    }
+    const changes=[...this._pending.values()];
+    const originalRevision=this._editRevision;
     this._saving=true;this._notice="";this._draw();
     try{
       const response=await this._hass.callWS({type:"rhi_foundation/engineering",save_module:{
-        module_id:module.domain_id,expected_revision:this._data.configuration_revision,
-        changes:[...this._pending.values()],confirm_all:this._confirmAll
+        module_id:module.domain_id,expected_revision:originalRevision,
+        changes,confirm_all:this._confirmAll
       }});
-      if(!response?.saved)throw Error("No confirmed change");
-      this._pending.clear();this._confirmAll=false;this._moduleData=null;
-      await this._fetch();
-      this._notice=this._t("saved");
-    }catch(e){this._notice=this._t("cannotSave")+": "+String(e?.message||e);}
-    finally{this._saving=false;this._draw();}
+      if(!response?.saved){
+        if(response?.configuration_revision!==originalRevision)throw Error("stale_configuration_revision");
+        this._pending.clear();this._editRevision=null;this._review=false;
+        this._notice=this._t("noChange");return;
+      }
+      const [view,evidence]=await Promise.all([
+        this._hass.callWS({type:"rhi_foundation/engineering",kind:this._kind,
+          offset:this._offset,limit:this._limit,query:this._query}),
+        this._hass.callWS({type:"rhi_foundation/engineering",
+          module_export:module.domain_id,module_choices:true})
+      ]);
+      if(view?.configuration_revision!==response.configuration_revision||
+        evidence?.module_id!==module.domain_id||!this._readbackMatches(changes,evidence))
+        throw Error("no_authoritative_readback");
+      this._data=view;this._moduleData=evidence;this._loaded=true;
+      this._pending.clear();this._editRevision=null;this._confirmAll=false;
+      this._review=false;this._pendingModuleSwitch="";
+      this._notice=this._t("saveReadback");
+    }catch(e){
+      // The server may have committed before transport/readback failure.
+      // Never claim failure or blindly retry; keep the staged intent visible.
+      this._notice=this._t("notSaved")+" "+String(e?.message||e);
+    }finally{this._saving=false;this._draw();}
   }
   _friendlyStatus(state){
     return {SELECTED_UNVERIFIED:this._t("configured"),
@@ -619,68 +701,67 @@ class RhiFoundationEngineeringCard extends HTMLElement {
     return `<button type="button" class="fx-action${primary?" primary":""}" data-fx-action="${this._esc(action)}"${disabled?" disabled":""}>${this._esc(label)}</button>`;
   }
   _overview(d){
-    const inventory=d.inventory||{}, modules=d.modules||[], ints=d.integrations||[];
-    const reg=d.registries||{}, visual=reg.visual_assets||{};
-    const activeIssues=(d.diagnostics||[]).filter(x=>x.issues?.length).length
-      +Object.keys(inventory.source_errors||{}).length
-      +(visual.issues||[]).length
-      +Object.keys(d.framework_provider_errors||{}).length;
-    const state=d.foundation_state?.state||this._t("countUnknown");
-    const counts=inventory.counts||null;
-    const scan=inventory.status==="NOT_CAPTURED"?this._t("scanMissing"):inventory.status;
-    const summary=rhiUxStatusGrid([
-      {icon:"mdi:home-automation",label:this._t("foundation"),value:state,
-       detail:d.generated_at?this._date(d.generated_at):this._t("missingEvidence")},
-      {icon:"mdi:layers-outline",label:this._t("moduleCount"),
-       value:d.generated_at?modules.length:this._t("countUnknown")},
-      {icon:"mdi:connection",label:this._t("integrationCount"),
-       value:d.generated_at?ints.length:this._t("countUnknown")},
-      {icon:"mdi:alert-circle-outline",label:this._t("attention"),
-       value:d.generated_at?activeIssues:this._t("countUnknown")}
-    ]);
-    return `${summary}<div class="fx-grid">
-      <article class="fx-card"><h3>${this._esc(this._t("scanState"))}</h3>
-        <p class="${inventory.status==="COMPLETE_TECHNICAL"?"fx-strong":"fx-warn"}">${this._esc(scan)}</p>
-        <p>${inventory.status==="NOT_CAPTURED"?this._esc(this._t("scanHint")):
-          this._esc(this._t("capturedAt"))+": "+this._esc(this._date(inventory.captured_at))}</p>
-        <div class="fx-row">${this._scanAction()}${this._button(this._t("export"),"export-site",false,!["COMPLETE_TECHNICAL","PARTIAL_HOLD"].includes(inventory.status))}</div>
-        ${counts?`<p>${Object.entries(counts).map(([k,v])=>`${this._esc(k)}: <b>${this._esc(v)}</b>`).join(" · ")}</p>`:""}
-      </article>
-      <article class="fx-card"><h3>${this._esc(this._t("firstAction"))}</h3>
-        <p>${this._esc(this._t("selectHelp"))}</p>
-        <div class="fx-row">${this._button(this._t("goConfig"),"go-config",true)}${this._settingsLink()}</div>
-      </article>
-      <article class="fx-card"><h3>${this._esc(this._t("uxRegistry"))}</h3>
-        <p>${this._esc(this._t("enabledSetting"))}: ${reg.ux?.enabled_setting===true?"Yes":reg.ux?.enabled_setting===false?"No":"UNKNOWN"}</p>
-        <p class="fx-warn">${this._esc(this._t("registrationUnknown"))}</p>
-        <p class="fx-code">${this._esc(reg.ux?.registered_in_browser||"UNKNOWN")}</p>
-      </article>
-      <article class="fx-card"><h3>${this._esc(this._t("visualRegistry"))}</h3>
-        <p>${this._esc(visual.status||"UNKNOWN")} · ${this._esc(visual.provider_count??"UNKNOWN")} providers ·
-           ${this._esc(visual.entry_count??"UNKNOWN")} assets</p>
-        ${(visual.issues||[]).slice(0,12).map(i=>`<p class="fx-warn fx-code">${this._esc(i)}</p>`).join("")}
-        ${visual.issues_truncated||visual.issues?.length>12?`<p class="fx-warn">More registry issues in Foundation trace</p>`:""}
-      </article>
-      <article class="fx-card"><h3>${this._esc(this._t("registries"))}</h3>
-        <p>${this._esc(this._t("dbsRegistry"))}: ${this._esc(reg.domain_build_specifications?.provider_count??"UNKNOWN")}</p>
-        <p>${this._esc(this._t("frameworkRegistry"))}: ${this._esc(reg.framework_resource_providers?.provider_count??"UNKNOWN")}</p>
-      </article>
-      </div>${this._modules(d)}`;
+    const inventory=d.inventory||{},modules=d.modules||[],reg=d.registries||{};
+    const status=inventory.status==="NOT_CAPTURED"?this._t("summaryNoScan"):
+      inventory.status==="COMPLETE_TECHNICAL"?this._t("summaryComplete"):
+      this._t("summaryPartial");
+    const selected=modules.reduce((n,m)=>n+(m.configured_concepts||0),0);
+    return `<article class="fx-card">
+      <div class="fx-context"><div><h3>${this._esc(this._t("attentionTitle"))}</h3>
+        <span class="fx-muted">${this._esc(modules.length)} ${this._esc(this._t("moduleCount"))}
+         · ${this._esc(selected)} ${this._esc(this._t("savedChoices"))}</span></div>
+        <div class="fx-toolbar">${this._scanAction()}
+          ${this._button(this._t("export"),"export-site",false,
+            !["COMPLETE_TECHNICAL","PARTIAL_HOLD"].includes(inventory.status))}</div>
+      </div>
+      <p class="${inventory.status==="COMPLETE_TECHNICAL"?"fx-muted":"fx-warn"}">
+        ${this._esc(status)}${inventory.captured_at?" · "+this._esc(this._date(inventory.captured_at)):""}
+      </p>
+      ${inventory.status==="NOT_CAPTURED"?`<p class="fx-muted">${this._esc(this._t("discoveryUnknown"))}</p>`:""}
+      ${inventory.status==="PARTIAL_HOLD"?`<p class="fx-warn">${this._esc(this._t("needsReview"))} ·
+        ${this._esc(Object.keys(inventory.source_errors||{}).length)} ${this._esc(this._t("scanErrors"))}</p>`:""}
+    </article>
+    ${this._modules(d)}
+    <details class="fx-card fx-technical"><summary>${this._esc(this._t("showDetails"))}</summary>
+      <p class="fx-muted">${this._esc(this._t("foundation"))}: ${this._esc(d.foundation_state?.state||this._t("countUnknown"))}
+      · ${this._esc(this._t("integrationCount"))}: ${this._esc((d.integrations||[]).length)}</p>
+      <p class="fx-code">${this._esc(this._t("uxRegistry"))}:
+       ${this._esc(reg.ux?.registered_in_browser||"NOT_VERIFIED")}</p>
+      <p class="fx-code">${this._esc(this._t("dbsRegistry"))}:
+       ${this._esc(reg.domain_build_specifications?.provider_count??"UNKNOWN")}</p>
+      <p class="fx-code">${this._esc(this._t("frameworkRegistry"))}:
+       ${this._esc(reg.framework_resource_providers?.provider_count??"UNKNOWN")}</p>
+      ${(reg.visual_assets?.issues||[]).slice(0,8).map(x=>`<p class="fx-warn fx-code">${this._esc(x)}</p>`).join("")}
+    </details>`;
   }
   _modules(d){
     if(!d.modules?.length)return rhiUxState({state:"unavailable",title:this._t("noModules")});
-    return `<div class="fx-list">${d.modules.map(m=>`<article class="fx-item"><details>
-      <summary>${this._esc(m.display_name)} <span class="fx-pill">${this._esc(m.configured_concepts)}/${this._esc(m.concepts?.length||0)} ${this._esc(this._t("configuredCount"))}</span></summary>
-      <div class="fx-list">${(m.concepts||[]).map(c=>`<div class="fx-card">
-        <div class="fx-row"><strong>${this._esc(c.display_name)}</strong>
-          <span class="${this._statusClass(c.status)}">${this._esc(this._friendlyStatus(c.status))}</span></div>
-        <p>${this._esc(this._t("integration"))}: ${this._esc(c.available_integrations?.join(", ")||this._t("none"))}</p>
-        <p>${this._esc(this._t("configuredSources"))}: ${this._esc(c.configured_integrations?.join(", ")||this._t("none"))}</p>
-        ${c.configured_logical_devices?.length?`<p>${c.configured_logical_devices.map(x=>this._esc(x)).join(", ")}</p>`:""}
-        <details><summary>${this._esc(this._t("details"))}</summary><p class="fx-code">${this._esc(m.domain_id)} / ${this._esc(c.concept_id)}</p></details>
-      </div>`).join("")}</div></details></article>`).join("")}</div>`;
+    return `<div class="fx-list">${d.modules.map(m=>{
+      const saved=m.configured_concepts||0;
+      const review=(m.concepts||[]).filter(c=>c.status==="SELECTED_REVIEW_REQUIRED"||
+        c.status==="SOURCE_UNAVAILABLE"||c.status==="PROVIDER_UNAVAILABLE").length;
+      return `<article class="fx-item"><div class="fx-context">
+        <div><strong>${this._esc(m.display_name)}</strong>
+          <div class="fx-subline">${this._esc(saved)} ${this._esc(this._t("savedChoices"))}
+            · ${this._esc(this._t("notReady"))}
+            ${review?" · "+this._esc(review)+" "+this._esc(this._t("attention")):""}</div></div>
+        <div class="fx-toolbar">
+          <button class="fx-action primary" data-fx-action="go-config"
+            data-fx-module="${this._esc(m.domain_id)}">${this._esc(this._t("configAction"))}</button>
+          <button class="fx-action" data-fx-action="go-diagnostics"
+            data-fx-module="${this._esc(m.domain_id)}">${this._esc(this._t("diagnoseAction"))}</button>
+        </div></div>
+        <details class="fx-technical"><summary>${this._esc(this._t("concept"))} · ${this._esc((m.concepts||[]).length)}</summary>
+          <div class="fx-list">${(m.concepts||[]).map(c=>`<div class="fx-context fx-item">
+            <span>${this._esc(c.display_name)}
+              <span class="fx-subline">${this._esc(this._friendlyStatus(c.status))}</span></span>
+            <button class="fx-action" data-fx-action="go-config"
+              data-fx-module="${this._esc(m.domain_id)}"
+              data-fx-concept-target="${this._esc(c.concept_id)}">${this._esc(this._t("configAction"))}</button>
+          </div>`).join("")}</div></details>
+      </article>`;
+    }).join("")}</div>`;
   }
-
   _modulePicker(){
     const active=this._module();
     return `<label for="fx-domain">${this._esc(this._t("moduleSelect"))}</label>
@@ -693,182 +774,268 @@ class RhiFoundationEngineeringCard extends HTMLElement {
     const active=this._module(),data=this._moduleData;
     if(!active)return rhiUxState({state:"unavailable",title:this._t("noModules")});
     if(!data||data.module_id!==active.domain_id)
-      return rhiUxState({state:"unavailable",title:this._t("notCaptured")});
-    const concepts=(data.concepts||[]).map(c=>{
-      const sources=[...new Set([...(c.published_sources||[]).map(x=>x.integration_domain).filter(Boolean),
-        ...(c.selected_integrations||[]).map(x=>x.integration_domain)])].sort();
-      const integrations=sources.map(name=>{
-        const original=(c.selected_integrations||[]).find(x=>x.integration_domain===name);
+      return rhiUxState({state:"loading",title:this._t("refresh")});
+    const native=data.native_choices||{},partial=data.status!=="COMPLETE_TECHNICAL";
+    const concepts=data.concepts||[];
+    if(!this._selectedConcept&&concepts.length)this._selectedConcept=concepts[0].concept_id;
+    const sourceName=name=>String(name||"").replaceAll("_"," ").replace(/\b\w/g,x=>x.toUpperCase());
+    const renderConcept=c=>{
+      const live=native[c.concept_id]||{},sources=[...(live.sources||[])];
+      const names=new Set(sources.map(x=>x.source_id));
+      for(const row of c.published_sources||[]){
+        const name=row.integration_domain;
+        if(name&&!names.has(name)){sources.push({source_id:name,display_name:sourceName(name),
+          eligible:false,devices:[]});names.add(name);}
+      }
+      for(const row of c.selected_integrations||[]){
+        const name=row.integration_domain;
+        if(name&&!names.has(name)){sources.push({source_id:name,display_name:sourceName(name),
+          eligible:false,devices:[]});names.add(name);}
+      }
+      const saved=(c.selected_integrations||[]).length+(c.selected_surfaces||[]).reduce(
+        (n,row)=>n+(row.fields||[]).length,0);
+      const issueCount=(c.unresolved||[]).length;
+      const trace=(data.runtime_diagnostics||[]).find(x=>x.concept_id===c.concept_id)||{};
+      const problems=[...(trace.issues||[]),...(c.unresolved||[])];
+      const status=partial?this._t("notVerified"):
+        problems.length?this._t("needsReview"):
+        saved?this._t("statusSelected"):this._t("pending");
+      // Only the active foldable materializes source rows. Large HA
+      // installations must not render thousands of hidden device controls.
+      if(this._selectedConcept!==c.concept_id)
+        return `<details class="fx-concept" data-fx-concept-row="${this._esc(c.concept_id)}">
+          <summary><span>${this._esc(c.display_name)}</span>
+            <small class="fx-muted">${this._esc(saved)} · ${this._esc(status)}</small></summary>
+        </details>`;
+      const srcRows=sources.map(src=>{
+        const name=src.source_id;
+        const old=(c.selected_integrations||[]).find(x=>x.integration_domain===name);
         const pending=this._pending.get([c.concept_id,"integration",name].join("|"));
-        const selected=pending?.selected??Boolean(original);
-        const entries=(c.evidence||[]).filter(x=>x.kind==="integration_entry"&&x.integration_domain===name)
-          .map(x=>x.key);
-        const selectedSource=(c.published_sources||[]).filter(x=>x.integration_domain===name);
-        const framework=selectedSource.some(x=>x.source_kind==="framework_resource");
-        const devices=(c.evidence||[]).filter(x=>x.kind==="device"&&
-          (x.config_entry_ids||[]).some(id=>entries.includes(id)));
-        // The native wizard selects FRAMEWORK resource_id, never candidate_id.
-        // Deduplicate capabilities of the same registered framework resource.
-        const knownResources=new Set();
-        const resources=(c.evidence||[]).filter(x=>x.kind==="framework_capability"&&
-          x.integration_domain===name&&x.resource_id&&!knownResources.has(x.resource_id)&&
-          (knownResources.add(x.resource_id),true))
-          .map(x=>({...x,key:x.resource_id,name:x.resource_id}));
-        const deviceRows=framework?resources:devices;
-        const chosen=pending?.selected_device_ids||original?.device_selection?.selected_device_ids||[];
-        const mode=pending?.device_filter_mode||original?.device_selection?.device_filter_mode||
-          (deviceRows.length?"specific_devices":"all_matching");
-        return `<details class="fx-item" ${selected?"open":""}><summary>${this._esc(name)} ·
-          ${this._esc(this._t("sourceLabel"))} · ${selected?"Yes":"No"}</summary>
-          ${diagnostics?`<p class="fx-code">${this._esc(mode)} · ${this._esc(chosen.join(", ")||"UNKNOWN")}</p>`:
-            `<label class="fx-row"><input type="checkbox" data-fx-integration="${this._esc(name)}"
-              data-fx-concept="${this._esc(c.concept_id)}" ${selected?"checked":""}>
-              ${this._esc(this._t("selected"))}</label>
-              <label>${this._esc(this._t("mode"))}
-                <select class="fx-select" data-fx-mode="${this._esc(name)}"
-                  data-fx-concept="${this._esc(c.concept_id)}">
-                  <option value="specific_devices" ${mode==="specific_devices"?"selected":""}>${this._esc(this._t("specific"))}</option>
-                  <option value="all_matching" ${mode==="all_matching"?"selected":""}>${this._esc(this._t("matching"))}</option>
-                </select></label>
-              ${deviceRows.map(d=>`<label class="fx-row">
-                <input type="checkbox" data-fx-device="${this._esc(d.key)}"
-                 data-fx-integration="${this._esc(name)}" data-fx-concept="${this._esc(c.concept_id)}"
-                 ${chosen.includes(d.key)?"checked":""}>
-                 ${this._esc(d.name||d.key)}</label>`).join("")}`}
-          ${(c.evidence||[]).filter(x=>x.kind==="entity"&&x.integration_domain===name).length>40?`<p class="fx-warn">40 / ${(c.evidence||[]).filter(x=>x.kind==="entity"&&x.integration_domain===name).length} entities shown; use Module Export for all</p>`:""}
-          ${(c.evidence||[]).filter(x=>x.kind==="entity"&&x.integration_domain===name).slice(0,40)
-            .map(x=>`<details><summary class="fx-code">${this._esc(x.current_entity_id||x.key)}
-              · ${this._esc(x.availability_at_capture||"UNKNOWN")}</summary>
-              <p>${this._esc(x.observed_value??x.value_status??"UNKNOWN")}
-              ${this._esc(x.native_unit||"")}</p></details>`).join("")}
-          </details>`;
+        const checked=pending?.selected??Boolean(old);
+        const entries=(c.evidence||[]).filter(x=>x.kind==="integration_entry"&&
+          x.integration_domain===name).map(x=>x.key);
+        const seenResource=new Set();
+        const captured=(c.evidence||[]).filter(x=>
+          (x.kind==="device"&&(x.integration_domain===name||
+            (x.config_entry_ids||[]).some(id=>entries.includes(id))))||
+          (x.kind==="framework_capability"&&x.integration_domain===name&&x.resource_id))
+          .map(x=>({id:x.kind==="framework_capability"?x.resource_id:x.key,
+            display_name:x.name||x.resource_id||x.key}))
+          .filter(x=>x.id&&!seenResource.has(x.id)&&(seenResource.add(x.id),true));
+        const candidates=src.devices?.length?src.devices:captured;
+        const savedIds=old?.device_selection?.selected_device_ids||[];
+        const chosen=pending?.selected_device_ids||savedIds;
+        const mode=pending?.device_filter_mode||old?.device_selection?.device_filter_mode||
+          "specific_devices";
+        const retained=chosen.filter(id=>!candidates.some(x=>x.id===id));
+        return `<tr class="fx-source-row"><td><strong>${this._esc(src.display_name||sourceName(name))}</strong>
+            ${!src.eligible&&live.sources?.length?`<div class="fx-subline fx-warn">${this._esc(this._t("notFoundSource"))}</div>`:""}
+          </td><td>
+          <select class="fx-select fx-scope" data-fx-mode="${this._esc(name)}"
+            data-fx-concept="${this._esc(c.concept_id)}" ${!src.eligible&&live.sources?.length?"disabled":""}>
+            <option value="specific_devices" ${mode==="specific_devices"?"selected":""}>${this._esc(this._t("specific"))}</option>
+            <option value="all_matching" ${mode==="all_matching"?"selected":""}>${this._esc(this._t("matching"))}</option>
+          </select></td>
+          <td><input type="checkbox" aria-label="${this._esc(src.display_name||name)}"
+            data-fx-integration="${this._esc(name)}" data-fx-concept="${this._esc(c.concept_id)}"
+            ${checked?"checked":""} ${!src.eligible&&live.sources?.length?"disabled":""}></td></tr>
+          ${candidates.map(d=>`<tr><td><span class="fx-subsource">↳ ${this._esc(d.display_name||d.id)}</span></td>
+            <td class="fx-muted">${this._esc(this._t("scopeSpecific"))}</td>
+            <td><input type="checkbox" aria-label="${this._esc(d.display_name||d.id)}"
+              data-fx-device="${this._esc(d.id)}" data-fx-integration="${this._esc(name)}"
+              data-fx-concept="${this._esc(c.concept_id)}" ${chosen.includes(d.id)?"checked":""}
+              ${!src.eligible&&live.sources?.length?"disabled":""}></td></tr>`).join("")}
+          ${retained.map(id=>`<tr><td><span class="fx-subsource fx-warn">↳ ${this._esc(this._t("notFoundSource"))}</span>
+            <details class="fx-technical"><summary>${this._esc(this._t("details"))}</summary><code>${this._esc(id)}</code></details></td>
+            <td>${this._esc(this._t("specific"))}</td><td><input type="checkbox" checked disabled></td></tr>`).join("")}
+          ${src.truncated?`<tr><td colspan="3" class="fx-warn">${this._esc(this._t("nativeFallback"))}: ${this._esc(src.device_count)} ${this._esc(this._t("selectedItems"))}</td></tr>`:""}`;
       }).join("");
-      const fields=(c.configuration_fields||[]).map(f=>{
-        const old=(c.selected_surfaces||[]).find(s=>s.surface_id===f.surface_id)
-          ?.fields?.find(x=>x.field_id===f.field_id)?.source_identity?.current_entity_id||"";
-        const pending=this._pending.get([c.concept_id,"entity",f.surface_id+"."+f.field_id].join("|"));
-        const chosen=pending?(pending.selected?pending.source_id:""):old;
-        const compatible=(c.evidence||[]).filter(x=>x.kind==="entity"&&
-          x.entity_registry_id&&!x.entity_id_redacted&&!x.disabled_by&&
-          (x.technical_capabilities||[]).some(cap=>(f.technical_capabilities||[]).includes(cap))&&
-          (!f.units?.length||f.units.includes(x.native_unit)));
-        return `<div class="fx-item"><strong>${this._esc(f.display_name)}</strong>
-          <p class="fx-muted">${this._esc(f.surface_id)} · ${this._esc((f.allowed_source_kinds||[]).join(", "))}</p>
-          ${diagnostics?
-             `<p class="fx-code">${this._esc(chosen||"UNKNOWN")}</p>
-              ${compatible.filter(x=>x.current_entity_id===chosen)
-               .map(x=>`<p>${this._esc(x.observed_value??x.value_status??"UNKNOWN")}
-               ${this._esc(x.native_unit||"")} · ${this._esc(x.observed_at||x.availability_at_capture||"UNKNOWN")}</p>`).join("")}`:
-             `<select class="fx-select" data-fx-field="${this._esc(f.field_id)}"
-                data-fx-surface="${this._esc(f.surface_id)}" data-fx-concept="${this._esc(c.concept_id)}"
-                ${f.cardinality==="singleton"&&f.allowed_source_kinds?.includes("entity")?"":"disabled"}>
-                <option value="">${this._esc(this._t("noSelection"))}</option>
-                ${chosen&&!compatible.some(x=>x.current_entity_id===chosen)?
-                   `<option selected value="${this._esc(chosen)}">${this._esc(chosen)} · unavailable</option>`:""}
-                ${compatible.slice(0,250).map(x=>`<option value="${this._esc(x.current_entity_id)}"
-                  ${chosen===x.current_entity_id?"selected":""}>${this._esc(x.current_entity_id)}
-                   · ${this._esc(x.availability_at_capture||"UNKNOWN")}</option>`).join("")}
-              </select>`}
-          </div>`;
+      const fields=(c.configuration_fields||[]).map(field=>{
+        const old=(c.selected_surfaces||[]).find(row=>row.surface_id===field.surface_id)
+          ?.fields?.find(row=>row.field_id===field.field_id)
+          ?.source_identity?.current_entity_id||"";
+        const pending=this._pending.get([c.concept_id,"entity",field.surface_id+"."+field.field_id].join("|"));
+        const named=(live.fields||[]).find(x=>x.surface_id===field.surface_id&&x.field_id===field.field_id);
+        const current=pending?(pending.selected?pending.source_id:""):
+          (named?.saved_current_entity_id||old);
+        const choices=named?.candidates?.length?named.candidates:
+          (c.evidence||[]).filter(row=>row.kind==="entity"&&row.entity_registry_id
+            &&!row.disabled_by&&(row.technical_capabilities||[]).some(cap=>
+              (field.technical_capabilities||[]).includes(cap))
+            &&(!field.units?.length||field.units.includes(row.native_unit)))
+            .map(row=>({id:row.current_entity_id,display_name:row.name||row.current_entity_id}));
+        return `<tr><td><strong>${this._esc(field.display_name||field.field_id)}</strong>
+          <div class="fx-subline">${this._esc(this._t("directSource"))}</div></td>
+          <td><select class="fx-select" data-fx-field="${this._esc(field.field_id)}"
+            data-fx-surface="${this._esc(field.surface_id)}"
+            data-fx-concept="${this._esc(c.concept_id)}"
+            ${field.cardinality==="singleton"&&field.allowed_source_kinds?.includes("entity")?"":"disabled"}>
+            <option value="">${this._esc(this._t("noSelection"))}</option>
+            ${current&&!choices.some(x=>x.id===current)?`<option value="${this._esc(current)}" selected>${this._esc(this._t("notFoundSource"))}</option>`:""}
+            ${choices.map(x=>`<option value="${this._esc(x.id)}" ${current===x.id?"selected":""}>${this._esc(x.display_name||x.id)}</option>`).join("")}
+          </select></td><td><span class="fx-muted">${current?"✓":"—"}</span></td></tr>
+          ${named?.truncated?`<tr><td colspan="3" class="fx-warn">${this._esc(this._t("nativeFallback"))} · ${this._esc(named.candidate_count)}</td></tr>`:""}`;
       }).join("");
-      const technical=(c.evidence||[]).filter(x=>["framework_capability","service_surface"].includes(x.kind))
-        .map(x=>`<details class="fx-item"><summary>${this._esc(x.kind)}:
-         ${this._esc(x.resource_id||x.service_name||x.key)}</summary>
-         <p class="fx-code">${this._esc(JSON.stringify(x))}</p></details>`).join("");
-      const publishedRequirements=(c.published_technical_requirements||[]).map(b=>`
-        <details class="fx-item"><summary>${this._esc(b.builder_id||"Published source")}
-          · ${this._esc((b.normalized_inputs||[]).length)} required/optional inputs</summary>
-          <p class="fx-code">${this._esc(JSON.stringify(b.topology||{}))}</p>
-          ${(b.normalized_inputs||[]).map(i=>`<p class="fx-code">
-            ${this._esc(i.input_id)} · ${this._esc(i.required===true?"required":"optional")}
-            · ${this._esc(i.cardinality||"UNKNOWN")} ·
-            ${this._esc((i.allowed_source_kinds||[]).join(", ")||"UNSPECIFIED")}
-            · ${this._esc(JSON.stringify(i.technical_capabilities||{}))}</p>`).join("")}
-        </details>`).join("");
-      const trace=(data.runtime_diagnostics||[]).find(t=>t.concept_id===c.concept_id);
-      const traceHtml=trace?`<details class="fx-item" ${(trace.issues||[]).length?"open":""}>
-        <summary>${this._esc(trace.flow_state||"UNKNOWN")} ·
-        ${this._esc((trace.issues||[]).length)} Foundation trace issues</summary>
-        ${(trace.issues||[]).map(x=>`<p class="fx-warn fx-code">${this._esc(x)}</p>`).join("")}
-        ${(trace.handoff||[]).map(h=>`<p class="fx-code">
-          ${this._esc(h.builder_id||"UNKNOWN")} ·
-          ${this._esc(h.topology_state||"UNKNOWN")} ·
-          required=${this._esc(h.required_inputs_complete??"UNKNOWN")} ·
-          groups=${this._esc(h.candidate_group_count??"UNKNOWN")}
-          ${(h.issues||[]).map(i=>`<span class="fx-warn">${this._esc(i)}</span>`).join("")}
-        </p>`).join("")}
-       </details>`:"";
-      return `<details class="fx-item" open><summary>${this._esc(c.display_name)}</summary>
-        <div class="fx-list">${integrations}${fields}${technical}${publishedRequirements}${traceHtml}</div>
-        ${(c.unresolved||[]).map(u=>`<p class="fx-warn">${this._esc(u)}</p>`).join("")}
-      </details>`;
-    }).join("");
-    return `<p class="${data.status==="COMPLETE_TECHNICAL"?"fx-muted":"fx-warn"}">
-      ${this._esc(data.status)} · ${this._esc(data.capture_fingerprint||this._t("notCaptured"))}</p>
-      <div class="fx-list">${concepts}</div>`;
+      const technical=`<details class="fx-technical"><summary>${this._esc(this._t("detailsStatus"))}</summary>
+        <div class="fx-list">
+          ${(c.published_technical_requirements||[]).map(req=>`<div class="fx-item fx-code">${this._esc(req.builder_id||"")}
+           · ${this._esc(JSON.stringify(req.normalized_inputs||[]))}</div>`).join("")}
+          ${(c.evidence||[]).slice(0,40).map(row=>`<div class="fx-subline fx-code">${this._esc(row.kind)}:
+            ${this._esc(row.current_entity_id||row.resource_id||row.key||"")}</div>`).join("")}
+          ${(trace.handoff||[]).map(row=>`<div class="fx-subline fx-code">${this._esc(JSON.stringify(row))}</div>`).join("")}
+        </div></details>`;
+      const body=diagnostics?`<div class="fx-list">
+          <p class="fx-muted">${this._esc(partial?this._t("discoveryUnknown"):this._t("statusSelected"))}</p>
+          ${problems.length?problems.map(problem=>{
+            const ref=String(problem).split(":");
+            const identified=(c.configuration_fields||[]).find(field=>
+              ref.slice(1).join(":")===field.surface_id+"."+field.field_id);
+            const message=ref[0]==="field_evidence_unavailable"?
+              this._t("fieldIssue")+" · "+(identified?.display_name||this._t("requiredOptional")):
+              ref[0]==="selected_source_not_in_inventory"?
+              this._t("sourceUnavailable"):this._t("needsReview");
+            return `<div class="fx-item fx-context">
+              <span>${this._esc(message)}</span>
+              <button class="fx-action" data-fx-action="go-config"
+                data-fx-concept-target="${this._esc(c.concept_id)}">${this._esc(this._t("configAction"))}</button>
+              <details class="fx-technical"><summary>${this._esc(this._t("showDetails"))}</summary><code>${this._esc(problem)}</code></details>
+            </div>`;}).join(""):`<p class="fx-muted">${this._esc(this._t("traceClear"))}</p>`}
+          ${technical}
+        </div>`:`<div class="fx-concept-body">
+           <p class="fx-muted">${this._esc(this._t("oneCard"))}</p>
+           <table class="fx-table"><thead><tr><th>${this._esc(this._t("sourceTable"))}</th>
+             <th>${this._esc(this._t("mode"))}</th><th>${this._esc(this._t("selectionState"))}</th></tr></thead>
+             <tbody>${srcRows}${fields}</tbody></table>
+           <div class="fx-context">
+             <button class="fx-action" data-fx-action="go-diagnostics"
+               data-fx-concept-target="${this._esc(c.concept_id)}">${this._esc(this._t("diagnoseAction"))}</button>
+             ${this._settingsLink()}
+           </div>${technical}
+         </div>`;
+      return `<details class="fx-concept" data-fx-concept-row="${this._esc(c.concept_id)}"
+        ${this._selectedConcept===c.concept_id?"open":""}>
+        <summary><span>${this._esc(c.display_name)}</span>
+          <small class="fx-muted">${this._esc(saved)} · ${this._esc(status)}</small></summary>
+        ${body}</details>`;
+    };
+    return `<div class="fx-list">${concepts.map(renderConcept).join("")}</div>`;
   }
   _configuration(){
-    return `<article class="fx-card"><h3>${this._esc(this._t("configurationTitle"))}</h3>
-      <div class="fx-row">${this._modulePicker()}${this._settingsLink()}</div>
-      <p>${this._esc(this._t("selectHelp"))}</p>${this._moduleTree(false)}
-      <label class="fx-row"><input type="checkbox" data-fx-confirm-all ${this._confirmAll?"checked":""}>
-        ${this._esc(this._t("scopeConfirm"))}</label>
-      <div class="fx-row">
-        ${this._button(this._t("save"),"save-module",true,!this._pending.size||this._saving)}
-        ${this._button(this._t("cancel"),"cancel-module",false,!this._pending.size)}</div>
-      <p class="fx-muted">${this._esc(this._t("saveNote"))}</p>
-      </article>`;
+    const pending=this._pending.size,allPending=[...this._pending.values()].some(
+      change=>change.selected&&change.device_filter_mode==="all_matching");
+    return `<article class="fx-card">
+      <div class="fx-context"><h3>${this._esc(this._t("configurationTitle"))}</h3>
+        <div class="fx-toolbar">${this._modulePicker()}</div></div>
+      ${this._pendingModuleSwitch?`<div class="fx-note"><p>${this._esc(this._t("switchWarning"))}</p>
+        <div class="fx-toolbar">${this._button(this._t("stay"),"stay-module")}
+          ${this._button(this._t("discard"),"discard-and-switch")}
+          ${this._button(this._t("save"),"save-module",true)}</div></div>`:""}
+      ${this._moduleTree(false)}
+      <div class="fx-footer">
+        <span class="fx-muted"><span data-fx-pending-count>${this._esc(pending)}</span>
+          · ${this._esc(pending?this._t("pendingChanges"):this._t("savedChoices"))}</span>
+        <div class="fx-toolbar">
+          ${this._button(this._t("reviewChanges"),"review-module",false,!pending)}
+          ${this._button(this._t("cancel"),"cancel-module",false,!pending)}
+          ${this._button(this._t("save"),"save-module",true,!pending||this._saving||!this._review)}
+        </div>
+      </div>
+      ${allPending?`<label class="fx-row fx-note"><input type="checkbox" data-fx-confirm-all
+        ${this._confirmAll?"checked":""}>${this._esc(this._t("scopeConfirm"))}</label>`:""}
+      ${this._review&&pending?`<div class="fx-note">
+        <strong>${this._esc(this._t("reviewChanges"))}</strong>
+        <ul>${[...this._pending.values()].map(change=>`<li>${this._esc(change.concept_id)} ·
+          ${this._esc(change.source_kind)} · ${this._esc(change.selected?this._t("selectionState"):this._t("cancel"))}
+          · ${this._esc(change.source_kind==="entity"?change.field_id:change.source_id)}
+          ${change.device_filter_mode==="all_matching"?" · ALL":""}</li>`).join("")}</ul>
+        <p class="fx-muted">${this._esc(this._t("saveNote"))}</p>
+      </div>`:""}
+    </article>`;
   }
   _diagnostics(){
-    return `<article class="fx-card"><h3>${this._esc(this._t("diagnosticsTitle"))}</h3>
-      <div class="fx-row">${this._modulePicker()}${this._button(this._t("moduleExport"),"export-module",true)}</div>
-      <p>${this._esc(this._t("exportInfo"))}</p>
-      ${this._moduleTree(true)}</article>`;
+    const data=this._moduleData,partial=data?.status!=="COMPLETE_TECHNICAL";
+    return `<article class="fx-card">
+      <div class="fx-context"><h3>${this._esc(this._t("diagnosticsTitle"))}</h3>
+        <div class="fx-toolbar">${this._modulePicker()}
+          ${this._button(this._t(partial?"exportPartial":"exportComplete"),"export-module",true)}</div></div>
+      ${partial?`<div class="fx-note">${this._esc(this._t("partialInfo"))}
+        <span class="fx-muted">${this._esc(data?.status||this._t("summaryNoScan"))}</span></div>`:""}
+      ${this._moduleTree(true)}
+    </article>`;
   }
   _draw(){
     if(!this.shadowRoot)return;
     const items=FX_TABS.map(id=>({id,label:this._t(id)}));
-    const shell=rhiUxDomainShell({
-      product:"Robotix",domain:"Foundation · Engineering",
+    const shell=rhiUxDomainShell({product:"Robotix",domain:"Foundation · Engineering",
       modules:[{id:"foundation",label:"Foundation",items}],
-      activeModule:"foundation",activeItem:this._tab
-    });
+      activeModule:"foundation",activeItem:this._tab});
     const title=this._t(this._tab==="overview"?"overviewTitle":this._tab+"Title");
     const sub=this._t(this._tab==="overview"?"overviewSub":this._tab+"Sub");
-    // Reuse immutable approved Hero sprite in three engineer task views.
-    // locally. UX Core owns overlay/crop; no scene includes status values or labels.
+    // Core Hero remains optional. A tiny five-scene sprite is never enlarged.
     const supplied=this._config?.hero_images?.[this._tab];
-    const image=supplied||FX_APPROVED_HERO_SPRITE;
-    const imageFocal=supplied?null:{x:50,y:FX_HERO_FOCAL_Y[this._tab]};
-    const hero=rhiUxPageHero({eyebrow:this._t("eyebrow"),title,
-      description:sub,image,imageAlt:"",imageFocal});
+    const image=supplied||"";
+    const imageFocal=this._config?.hero_focal?.[this._tab]||null;
+    const hero=supplied?rhiUxPageHero({eyebrow:this._t("eyebrow"),title,
+      description:sub,image,imageAlt:"",imageFocal}):"";
     let page="";
     if(this._loading)page=rhiUxState({state:"loading",title:this._t("refresh")});
     else if(this._error)page=`<div class="fx-error">${this._esc(this._error)}</div>`;
     else if(!this._data)page=rhiUxState({state:"unavailable",title:this._t("none")});
     else page={
       overview:()=>this._overview(this._data),
-      configuration:()=>this._configuration(this._data),
-      diagnostics:()=>this._diagnostics(this._data)
+      configuration:()=>this._configuration(),
+      diagnostics:()=>this._diagnostics()
     }[this._tab]();
     this.shadowRoot.innerHTML=`<style>${RHI_FX_CORE_CSS}\n${FX_CARD_STYLE}</style>
       <div class="rhi-ux-root fx-root">${shell}${hero}<main class="fx-content">
-      <div class="fx-row"><span class="fx-pill">${this._esc(this._t("foundation"))}</span>
-      ${this._button(this._t("refresh"),"refresh")}${this._settingsLink()}</div>
-      ${this._notice?`<div class="fx-error">${this._esc(this._notice)}</div>`:""}
+      <div class="fx-context"><span class="fx-muted">${this._esc(this._t("foundation"))}
+        · ${this._esc(this._t("notReady"))}</span>
+        ${this._button(this._t("refresh"),"refresh")}</div>
+      ${this._notice?`<div role="status" class="fx-note">${this._esc(this._notice)}</div>`:""}
       ${page}</main></div>`;
     this.shadowRoot.querySelectorAll("[data-rhi-item]").forEach(el=>el.addEventListener("click",()=>{
-      const next=el.getAttribute("data-rhi-item");if(FX_TABS.includes(next)){this._tab=next;this._pending.clear();this._draw();
-        if(next!=="overview")this._fetchModule(next==="diagnostics");}
+      const next=el.getAttribute("data-rhi-item");
+      if(!FX_TABS.includes(next)||next===this._tab)return;
+      this._tab=next;this._draw();
+      if(next!=="overview"&&(!this._moduleData||this._moduleData.module_id!==this._module()?.domain_id))
+        this._fetchModule(next==="diagnostics");
     }));
+    const activate=(domain,concept,tab)=>{
+      const target=domain||this._module()?.domain_id||"";
+      if(target!==this._module()?.domain_id&&this._pending.size){
+        this._pendingModuleSwitch={module:target,concept,tab};this._draw();return;
+      }
+      if(target!==this._module()?.domain_id){
+        this._selectedDomain=target;this._selectedConcept=concept||"";
+        this._moduleData=null;
+      }else if(concept)this._selectedConcept=concept;
+      this._tab=tab;this._pendingModuleSwitch="";this._draw();
+      if(tab!=="overview"&&(!this._moduleData||this._moduleData.module_id!==target))
+        this._fetchModule(tab==="diagnostics");
+    };
     this.shadowRoot.querySelectorAll("[data-fx-action]").forEach(el=>el.addEventListener("click",()=>{
       const action=el.getAttribute("data-fx-action");
-      if(action==="refresh"){this._loaded=false;this._fetch();}
-      else if(action==="go-config"){this._tab="configuration";this._draw();this._fetchModule();}
-      else if(action==="export-site")this._exportSite();
-      else if(action==="export-module")this._exportModule();
+      if(action==="refresh"){
+        // Preserve pending intent and its original revision. A newer revision
+        // must reject stale Save instead of silently overwriting another editor.
+        this._loaded=false;this._fetch();
+      }else if(action==="go-config"||action==="go-diagnostics"){
+        activate(el.getAttribute("data-fx-module"),
+          el.getAttribute("data-fx-concept-target"),
+          action==="go-config"?"configuration":"diagnostics");
+      }else if(action==="review-module"){this._review=true;this._draw();}
       else if(action==="save-module")this._saveModule();
-      else if(action==="cancel-module"){this._pending.clear();this._confirmAll=false;this._draw();}
+      else if(action==="cancel-module"){
+        this._pending.clear();this._editRevision=null;this._review=false;
+        this._confirmAll=false;this._notice="";this._draw();
+      }else if(action==="stay-module"){this._pendingModuleSwitch="";this._draw();}
+      else if(action==="discard-and-switch"){
+        const next=this._pendingModuleSwitch;
+        this._pending.clear();this._editRevision=null;this._review=false;
+        this._confirmAll=false;this._pendingModuleSwitch="";
+        activate(next?.module,next?.concept,next?.tab||"configuration");
+      }else if(action==="export-site")this._exportSite();
+      else if(action==="export-module")this._exportModule();
       else if(action==="scan-start"){this._scanConfirm=true;this._draw();}
       else if(action==="scan-cancel"){this._scanConfirm=false;this._draw();}
       else if(action==="scan-apply")this._captureSite();
@@ -879,39 +1046,56 @@ class RhiFoundationEngineeringCard extends HTMLElement {
         this._fetch();
       }
     }));
-    this.shadowRoot.querySelector("[data-fx-domain]")?.addEventListener("change",e=>{
-      this._selectedDomain=e.target.value;this._pending.clear();
-      this._moduleData=null;this._draw();this._fetchModule(this._tab==="diagnostics");
+    this.shadowRoot.querySelector("[data-fx-domain]")?.addEventListener("change",event=>{
+      activate(event.target.value,"",this._tab);
+    });
+    this.shadowRoot.querySelectorAll("[data-fx-concept-row]").forEach(el=>{
+      el.addEventListener("toggle",()=>{
+        const concept=el.getAttribute("data-fx-concept-row");
+        if(!el.open){
+          if(this._selectedConcept===concept)this._selectedConcept="__collapsed__";
+          return;
+        }
+        if(this._selectedConcept===concept)return;
+        this._selectedConcept=concept;
+        this._draw();
+      });
     });
     this.shadowRoot.querySelectorAll("[data-fx-integration]").forEach(el=>{
       if(el.tagName?.toLowerCase()!=="input")return;
       el.addEventListener("change",event=>{
         const concept_id=event.target.getAttribute("data-fx-concept"),
-          source_id=event.target.getAttribute("data-fx-integration");
-        const c=this._moduleData?.concepts?.find(x=>x.concept_id===concept_id);
-        const old=c?.selected_integrations?.find(x=>x.integration_domain===source_id);
+          source_id=event.target.getAttribute("data-fx-integration"),
+          key=[concept_id,"integration",source_id].join("|");
+        const concept=this._moduleData?.concepts?.find(x=>x.concept_id===concept_id);
+        const old=concept?.selected_integrations?.find(x=>x.integration_domain===source_id);
+        const pending=this._pending.get(key);
         this._stage({concept_id,source_kind:"integration",source_id,
-          selected:event.target.checked,device_filter_mode:old?.device_selection?.device_filter_mode||"specific_devices",
-          selected_device_ids:old?.device_selection?.selected_device_ids||[]});
+          selected:event.target.checked,
+          device_filter_mode:pending?.device_filter_mode||
+            old?.device_selection?.device_filter_mode||"specific_devices",
+          selected_device_ids:pending?.selected_device_ids||
+            old?.device_selection?.selected_device_ids||[]});
       });
     });
     this.shadowRoot.querySelectorAll("[data-fx-mode]").forEach(el=>el.addEventListener("change",event=>{
       const concept_id=event.target.getAttribute("data-fx-concept"),
         source_id=event.target.getAttribute("data-fx-mode"),
         key=[concept_id,"integration",source_id].join("|");
-      const c=this._moduleData?.concepts?.find(x=>x.concept_id===concept_id);
-      const old=c?.selected_integrations?.find(x=>x.integration_domain===source_id);
+      const concept=this._moduleData?.concepts?.find(x=>x.concept_id===concept_id);
+      const old=concept?.selected_integrations?.find(x=>x.integration_domain===source_id);
       const pending=this._pending.get(key);
       this._stage({concept_id,source_kind:"integration",source_id,selected:true,
         device_filter_mode:event.target.value,
-        selected_device_ids:pending?.selected_device_ids||old?.device_selection?.selected_device_ids||[]});
+        selected_device_ids:pending?.selected_device_ids||
+          old?.device_selection?.selected_device_ids||[]});
     }));
     this.shadowRoot.querySelectorAll("[data-fx-device]").forEach(el=>el.addEventListener("change",event=>{
       const concept_id=event.target.getAttribute("data-fx-concept"),
         source_id=event.target.getAttribute("data-fx-integration"),
         key=[concept_id,"integration",source_id].join("|");
-      const c=this._moduleData?.concepts?.find(x=>x.concept_id===concept_id);
-      const old=c?.selected_integrations?.find(x=>x.integration_domain===source_id);
+      const concept=this._moduleData?.concepts?.find(x=>x.concept_id===concept_id);
+      const old=concept?.selected_integrations?.find(x=>x.integration_domain===source_id);
       const pending=this._pending.get(key);
       const ids=new Set(pending?.selected_device_ids||old?.device_selection?.selected_device_ids||[]);
       if(event.target.checked)ids.add(event.target.getAttribute("data-fx-device"));
@@ -922,18 +1106,21 @@ class RhiFoundationEngineeringCard extends HTMLElement {
     this.shadowRoot.querySelectorAll("[data-fx-field]").forEach(el=>el.addEventListener("change",event=>{
       const concept_id=event.target.getAttribute("data-fx-concept"),
         surface_id=event.target.getAttribute("data-fx-surface"),
-        field_id=event.target.getAttribute("data-fx-field");
-      const c=this._moduleData?.concepts?.find(x=>x.concept_id===concept_id);
-      const old=c?.selected_surfaces?.find(x=>x.surface_id===surface_id)
+        field_id=event.target.getAttribute("data-fx-field"),
+        key=[concept_id,"entity",surface_id+"."+field_id].join("|");
+      const concept=this._moduleData?.concepts?.find(x=>x.concept_id===concept_id);
+      const old=concept?.selected_surfaces?.find(x=>x.surface_id===surface_id)
         ?.fields?.find(x=>x.field_id===field_id)?.source_identity?.current_entity_id;
-      const source_id=event.target.value||old;
+      const previous=this._pending.get(key);
+      const source_id=event.target.value||previous?.source_id||old;
       if(source_id)this._stage({concept_id,source_kind:"entity",source_id,surface_id,field_id,
         selected:Boolean(event.target.value)});
+      else {this._pending.delete(key);this._draw();}
     }));
     this.shadowRoot.querySelector("[data-fx-confirm-all]")?.addEventListener("change",
-      event=>{this._confirmAll=event.target.checked;this._draw();});
-
+      event=>{this._confirmAll=event.target.checked;});
   }
+
 }
 if(!customElements.get("rhi-foundation-engineering"))
   customElements.define("rhi-foundation-engineering",RhiFoundationEngineeringCard);

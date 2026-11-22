@@ -26,6 +26,7 @@ _REGISTERED_KEY = "rhi_foundation_engineering_ws_registered"
     vol.Optional("query", default=""): vol.All(str, vol.Length(max=96)),
     vol.Optional("module_export", default=""): vol.All(str, vol.Length(min=0, max=96)),
     vol.Optional("module_values", default=False): bool,
+    vol.Optional("module_choices", default=False): bool,
     vol.Optional("save_module"): vol.Schema({
         vol.Required("module_id"): vol.All(str, vol.Length(min=1, max=96)),
         vol.Required("expected_revision"): vol.All(vol.Coerce(int), vol.Range(min=0)),
@@ -56,7 +57,9 @@ async def websocket_engineering(hass: HomeAssistant, connection, msg) -> None:
             return
         module_id = msg.get("module_export") or ""
         response = (
-            current_module_evidence(hass, entries[0], module_id, include_values=msg.get("module_values", False))
+            current_module_evidence(hass, entries[0], module_id,
+                include_values=msg.get("module_values", False),
+                include_choices=msg.get("module_choices", False))
             if module_id else current_engineering_view(
                 hass, entries[0], kind=msg.get("kind", ""),
                 offset=msg.get("offset", 0), limit=msg.get("limit", 50),
