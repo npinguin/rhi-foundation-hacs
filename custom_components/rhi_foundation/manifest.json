@@ -1,6 +1,11 @@
 {
   "domain": "rhi_foundation",
   "name": "Robotix Foundation",
+  "after_dependencies": [
+    "frontend",
+    "http",
+    "lovelace"
+  ],
   "codeowners": [
     "@npinguin"
   ],
@@ -11,5 +16,5 @@
   "issue_tracker": "https://github.com/npinguin/rhi-foundation/issues",
   "requirements": [],
   "single_config_entry": true,
-  "version": "1.8.59"
+  "version": "1.8.60"
 }

@@ -127,7 +127,8 @@
         "title": "Foundation settings › Advanced",
         "description": "Developer diagnostics is Foundation-owned and separate from domain configuration. Changing it does not change Energy or Mobility mappings.",
         "data": {
-          "developer_mode": "Enable developer diagnostics mode"
+          "developer_mode": "Enable developer diagnostics mode",
+          "enable_ux": "Enable optional Foundation engineering dashboard (read-only)"
         }
       },
       "foundation_review": {

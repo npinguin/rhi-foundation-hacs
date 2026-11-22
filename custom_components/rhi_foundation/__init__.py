@@ -34,6 +34,8 @@ from .discovery.site_inventory_export import (
     build_site_inventory, capture_native_site, site_inventory_page,
 )
 from .wizard_state import canonicalize_multi_mapping_shape
+from .engineering_ws import async_register_engineering_ws
+from .frontend import async_register_frontend, async_setup_frontend_lifecycle
 from .publication_inventory import (
     FoundationPublicationInventoryProvider,
     register_domain_publication_inventory_provider,
@@ -307,7 +309,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     await _refresh("setup")
+    async_register_engineering_ws(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    if getattr(hass, "http", None) is not None:
+        await async_register_frontend(hass)
+        async_setup_frontend_lifecycle(hass, entry)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
 

@@ -3,8 +3,8 @@ from __future__ import annotations
 
 DOMAIN = "rhi_foundation"
 MODULE_DISPLAY_NAME = "Robotix Foundation"
-RELEASE = "F1.8.59"
-RELEASE_NAME = "DISCOVERY_LIFECYCLE"
+RELEASE = "F1.8.60"
+RELEASE_NAME = "FOUNDATION_ENGINEERING_UX"
 SHARED_BASELINE_ID = "RHI_SHARED_ARCHITECTURE_BASELINE"
 SHARED_BASELINE_VERSION = "1.8.6"
 EXECUTION_MODEL = "configuration_time_active_runtime_passive"
@@ -13,6 +13,7 @@ MINIMUM_HOME_ASSISTANT = "2026.8"
 PLATFORMS = ["sensor"]
 
 CONF_DEVELOPER_MODE = "developer_mode"
+CONF_ENABLE_UX = "enable_ux"
 CONF_SELECTED_INTEGRATIONS = "selected_integrations"
 CONF_CONCEPT_MAPPINGS = "concept_mappings"
 CONF_TECHNICAL_SELECTIONS = "technical_selections"

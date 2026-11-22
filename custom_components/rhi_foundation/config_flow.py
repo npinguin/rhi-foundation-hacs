@@ -189,6 +189,7 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
         self._selected_domain_id = FOUNDATION_SETTINGS
         if user_input is not None:
             self._developer_mode = bool(user_input.get(CONF_DEVELOPER_MODE, False))
+            self._enable_ux = bool(user_input.get("enable_ux", getattr(self, "_enable_ux", True)))
             if self._developer_mode:
                 return await self.async_step_technical_integrations()
             self._technical_selections = []
@@ -201,7 +202,10 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
         return self.async_show_form(
             step_id="foundation_settings",
             data_schema=vol.Schema(
-                {vol.Required(CONF_DEVELOPER_MODE, default=self._developer_mode): bool}
+                {
+                    vol.Required(CONF_DEVELOPER_MODE, default=self._developer_mode): bool,
+                    vol.Required("enable_ux", default=getattr(self, "_enable_ux", True)): bool,
+                }
             ),
         )
 
@@ -354,6 +358,7 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
         summary = "\n".join(
             [
                 f"Developer diagnostics: {'enabled' if self._developer_mode else 'disabled'}",
+                f"Optional engineering dashboard: {'enabled' if getattr(self, "_enable_ux", True) else 'disabled'}",
                 "Technical observation integrations:",
                 *(technical or ["- None"]),
                 "",
@@ -378,10 +383,17 @@ class RhiFoundationOptionsFlow(FoundationWizardMixin, config_entries.OptionsFlow
             return self.async_abort(reason="configuration_changed")
         previous_revision = int(self._base_config.get("configuration_revision", 0) or 0)
         if self._selected_domain_id == FOUNDATION_SETTINGS:
-            return self.async_create_entry(
-                title="",
-                data=self._payload(previous_revision),
-            )
+            edited = self._payload(previous_revision)
+            # Unchanged global review must not trigger structural reconciliation.
+            # Preserve the exact existing options overlay, including legacy data.
+            if all(
+                edited.get(key) == self._base_config.get(key)
+                for key in edited if key != "configuration_revision"
+            ):
+                return self.async_create_entry(
+                    title="", data=dict(self.config_entry.options)
+                )
+            return self.async_create_entry(title="", data=edited)
         domain_id = str(self._selected_domain_id or "")
         edited = self._payload(previous_revision)
         merged = merge_domain_configuration(
@@ -403,3 +415,256 @@ RhiFoundationConfigFlow.async_step_user = _scoped_initial_user
 RhiFoundationConfigFlow.async_get_options_flow = staticmethod(
     lambda config_entry: RhiFoundationOptionsFlow()
 )
+
+
+async def apply_engineering_selection(
+    hass: Any, entry: Any, *,
+    domain_id: str, expected_revision: int, changes: list[dict[str, Any]],
+    confirm_all: bool = False,
+) -> dict[str, Any]:
+    """Commit scoped selections to the EXISTING Foundation config entry.
+
+    Uses the same wizard validators and domain_config merge transaction as the
+    native Options Flow. One HA entry, no parallel store, no domain command path.
+    Concurrent edits fail closed. Unsupported/ambiguous kinds remain native
+    Options Flow responsibilities rather than guessed bindings.
+    """
+    from .const import CONF_CONFIGURATION_REVISION, CONF_DEVICE_SELECTIONS
+    from .wizard import (
+        ALL_MATCHING, FILTER_ALL, FILTER_SPECIFIC, _candidate_devices,
+        _installed_integrations,
+    )
+    from .shared_registry import get_framework_resource_provider
+    from .wizard_state import (
+        mapping_key, normalize_device_selection, concept_target_id,
+    )
+    from .configured_surfaces import (
+        surface_selection_key, surface_fingerprint, minimum_satisfied,
+        technical_matches_field,
+    )
+    from .wizard_candidates import entity_source_selection
+
+    if not isinstance(changes, list) or not 1 <= len(changes) <= 100:
+        raise ValueError("invalid_change_count")
+    current = effective_entry_configuration(entry.data, entry.options)
+    revision = int(current.get(CONF_CONFIGURATION_REVISION, 0) or 0)
+    if type(expected_revision) is not int or revision != expected_revision:
+        raise ValueError("stale_configuration_revision")
+    records = _domain_records(
+        hass, current.get(CONF_CONCEPT_MAPPINGS) or {},
+        current.get(CONF_CONFIGURATION_SURFACE_SELECTIONS) or {},
+    )
+    module = next((item for item in records if item["domain"] == domain_id), None)
+    if module is None:
+        raise ValueError("unknown_module")
+    concepts = {str(c["concept"]): c for c in module["concepts"]}
+    edited = deepcopy(current)
+    maps = edited.setdefault(CONF_CONCEPT_MAPPINGS, {})
+    devices = edited.setdefault(CONF_DEVICE_SELECTIONS, {})
+    surfaces = edited.setdefault(CONF_CONFIGURATION_SURFACE_SELECTIONS, {})
+    seen: set[tuple[str, ...]] = set()
+    modified = False
+    affected_surfaces: set[str] = set()
+    # An explicit Save may switch between source paths, but never select
+    # an integration AND an entity surface in the same submitted concept.
+    selected_paths: dict[str, set[str]] = {}
+    for proposed in changes:
+        if isinstance(proposed, dict) and proposed.get("selected") is True:
+            selected_paths.setdefault(str(proposed.get("concept_id") or ""), set()).add(
+                "surface" if proposed.get("source_kind") == "entity" else
+                str(proposed.get("source_kind") or "")
+            )
+    if any(len(kinds) > 1 for kinds in selected_paths.values()):
+        raise ValueError("conflicting_source_paths")
+
+    for change in changes:
+        if not isinstance(change, dict) or type(change.get("selected")) is not bool:
+            raise ValueError("invalid_selection")
+        concept_id = str(change.get("concept_id") or "")
+        concept = concepts.get(concept_id)
+        if concept is None:
+            raise ValueError("unpublished_concept")
+        kind = str(change.get("source_kind") or "")
+        source_id = str(change.get("source_id") or "")
+        # One physical entity may legitimately fill two distinct published
+        # fields. Uniqueness is the logical field target, not the entity name.
+        token = ((concept_id, kind, str(change.get("surface_id") or ""),
+                  str(change.get("field_id") or "")) if kind == "entity"
+                 else (concept_id, kind, source_id))
+        if not source_id or token in seen:
+            raise ValueError("duplicate_or_missing_source")
+        seen.add(token)
+        selected = change["selected"]
+
+        if kind == "integration":
+            key = mapping_key(domain_id, concept_id, source_id)
+            target = concept_target_id(domain_id, concept_id, source_id)
+            previous = maps.get(key)
+            if not selected:
+                if key in maps:
+                    maps.pop(key)
+                    devices.pop(target, None)
+                    modified = True
+                continue
+            builder = concept.get("builders", {}).get(source_id)
+            if builder is None or (source_id not in _installed_integrations(hass)
+                                   and get_framework_resource_provider(hass, source_id) is None):
+                raise ValueError("source_unavailable")
+            published = builder.get("specification") or {}
+            resource_types = {
+                str(s.get("resource_type")) for s in published.get("supported_sources") or []
+                if isinstance(s, dict) and s.get("resource_type")
+                and s.get("integration_domain") == source_id
+            }
+            available = _candidate_devices(hass, source_id, resource_types)
+            mode = str(change.get("device_filter_mode") or "")
+            selected_devices = change.get("selected_device_ids") or []
+            if not isinstance(selected_devices, list) or len(selected_devices) > 200:
+                raise ValueError("invalid_device_selection")
+            if not available and (resource_types or
+                                  get_framework_resource_provider(hass, source_id) is not None):
+                raise ValueError("framework_scope_unavailable")
+            if not available and not resource_types:
+                # Existing explicit device intent must survive a temporary
+                # disappearance. The HA-native wizard preserves it; the inline
+                # editor must never replace it with a broader All scope.
+                previous_scope = devices.get(target) or {}
+                if previous_scope and (
+                    previous_scope.get("selection_origin") != "integration_scope_no_devices"
+                    or previous_scope.get("device_filter_mode") == FILTER_SPECIFIC
+                ):
+                    raise ValueError("existing_device_selection_unavailable")
+                # HA integrations can expose direct entities without a DeviceEntry.
+                # Exactly the existing wizard's documented integration scope.
+                mode, chosen = FILTER_ALL, [ALL_MATCHING]
+                selection_state = "configured"
+                origin = "integration_scope_no_devices"
+            else:
+                if mode == FILTER_ALL and not confirm_all:
+                    raise ValueError("all_scope_requires_explicit_confirmation")
+                if mode not in (FILTER_ALL, FILTER_SPECIFIC):
+                    raise ValueError("invalid_filter_mode")
+                chosen, error = normalize_device_selection(
+                    mode, selected_devices, set(available),
+                    all_matching_token=ALL_MATCHING,
+                )
+                if error:
+                    raise ValueError(error)
+                selection_state = "review_required" if mode == FILTER_ALL else "configured"
+                origin = "explicit_engineering_selection"
+            new_mapping = {
+                "selection_kind": "configured_domain_selection",
+                "domain": domain_id, "concept": concept_id,
+                "display_name": concept.get("label") or concept_id,
+                "integration_domain": source_id,
+                "builder_id": builder["builder_id"],
+                "builder_version": builder["builder_version"],
+                "publication_revision": builder["publication_revision"],
+                "specification_fingerprint": builder["specification_fingerprint"],
+                "creates_binding": False, "creates_runtime_truth": False,
+                "creates_public_contract": False, "executes_commands": False,
+            }
+            new_selection = {
+                "selection_kind": "configured_domain_selection",
+                "integration_domain": source_id, "device_filter_mode": mode,
+                "selected_device_ids": chosen, "selection_state": selection_state,
+                "selection_origin": origin,
+                "creates_binding": False, "creates_runtime_truth": False,
+                "creates_public_contract": False, "executes_commands": False,
+            }
+            if previous != new_mapping or devices.get(target) != new_selection:
+                maps[key], devices[target] = new_mapping, new_selection
+                # Exactly the existing wizard's mutually exclusive source paths.
+                for old_key, old in list(surfaces.items()):
+                    if (isinstance(old, dict) and old.get("domain") == domain_id
+                            and old.get("concept") == concept_id):
+                        surfaces.pop(old_key)
+                modified = True
+        elif kind == "entity":
+            surface_id = str(change.get("surface_id") or "")
+            field_id = str(change.get("field_id") or "")
+            descriptor = next(
+                (s for s in concept.get("configuration_surfaces") or []
+                 if s.get("surface_id") == surface_id), None
+            )
+            if not descriptor or descriptor.get("cardinality") != "singleton":
+                raise ValueError("surface_requires_native_options_flow")
+            field = next(
+                (f for f in descriptor.get("fields") or []
+                 if f.get("field_id") == field_id), None
+            )
+            if field is None or "entity" not in (field.get("allowed_source_kinds") or []):
+                raise ValueError("unsupported_entity_source")
+            skey = surface_selection_key(domain_id, concept_id, surface_id, "singleton")
+            affected_surfaces.add(skey)
+            existing = deepcopy(surfaces.get(skey) or {})
+            if existing and existing.get("surface_fingerprint") != surface_fingerprint(descriptor):
+                raise ValueError("surface_descriptor_changed")
+            fieldmap = dict(existing.get("fields") or {})
+            if selected:
+                source = entity_source_selection(hass, source_id)
+                if source is None or not technical_matches_field(
+                    source["technical_capabilities"], source["native_unit"], field
+                ):
+                    raise ValueError("entity_unavailable")
+                fieldmap[field_id] = source
+            else:
+                old = (fieldmap.get(field_id) or {}).get("source_identity") or {}
+                if old.get("current_entity_id") != source_id:
+                    raise ValueError("stale_entity_selection")
+                fieldmap.pop(field_id, None)
+            # Validate the complete edited surface once all staged fields are applied.
+            if fieldmap:
+                replacement = {
+                    "selection_kind": "configured_domain_surface",
+                    "domain": domain_id, "concept": concept_id,
+                    "surface_id": surface_id, "object_type": descriptor["object_type"],
+                    "instance_id": "singleton", "cardinality": "singleton",
+                    "display_name": str(descriptor.get("display_name") or descriptor["object_type"]),
+                    "surface_fingerprint": surface_fingerprint(descriptor),
+                    "fields": fieldmap,
+                    "creates_binding": False, "creates_runtime_truth": False,
+                    "creates_public_contract": False, "executes_commands": False,
+                }
+                if surfaces.get(skey) != replacement:
+                    surfaces[skey] = replacement
+                    for old_key, mapping in list(maps.items()):
+                        if (isinstance(mapping, dict) and mapping.get("domain") == domain_id
+                                and mapping.get("concept") == concept_id):
+                            maps.pop(old_key)
+                            devices.pop(f"domain:{old_key}", None)
+                    modified = True
+            elif skey in surfaces:
+                surfaces.pop(skey)
+                modified = True
+        else:
+            raise ValueError("unsupported_selection_kind")
+    # A surface's required fields are an atomic group. Multiple staged changes
+    # may satisfy one all_of/any_of minimum in the SAME Save transaction.
+    for skey in affected_surfaces:
+        item = surfaces.get(skey)
+        if not isinstance(item, dict) or item.get("domain") != domain_id:
+            continue
+        c = concepts.get(str(item.get("concept") or ""))
+        descriptor = next(
+            (v for v in (c or {}).get("configuration_surfaces", [])
+             if v.get("surface_id") == item.get("surface_id")), None
+        )
+        if descriptor is not None and not minimum_satisfied(
+            descriptor.get("minimum"), set(item.get("fields") or {})
+        ):
+            raise ValueError("minimum_not_satisfied")
+    if not modified:
+        return {"saved": False, "configuration_revision": revision}
+    # One revision-guarded Foundation domain transaction, same source of truth
+    # and merge semantics as RhiFoundationOptionsFlow._finish_flow.
+    if int(effective_entry_configuration(entry.data, entry.options).get(
+        CONF_CONFIGURATION_REVISION, 0
+    ) or 0) != revision:
+        raise ValueError("concurrent_configuration_change")
+    merged = merge_domain_configuration(current, edited, domain_id=domain_id)
+    hass.config_entries.async_update_entry(entry, options=merged)
+    return {
+        "saved": True, "configuration_revision": merged[CONF_CONFIGURATION_REVISION],
+        "physical_readback": "NOT_VERIFIED",
+    }
